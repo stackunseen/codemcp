@@ -37,7 +37,8 @@ for (const [path, content] of Object.entries(outputs)) {
   } catch {
     current = undefined;
   }
-  if (current === content) continue;
+  // Compare with normalized line endings so a CRLF checkout (Windows runners) is not reported as stale.
+  if (current?.replace(/\r\n/g, "\n") === content) continue;
   if (check) {
     console.error(`stale: ${path}`);
     stale++;
