@@ -1,0 +1,34 @@
+{
+  "$comment": "Golden outputs of the stub generator. `servers` maps server name to its upstream tools; `expect` must match byte for byte.",
+  "servers": {
+    "github": [
+      {
+        "name": "create-issue",
+        "description": "Create an issue.\nSecond line.",
+        "inputSchema": { "type": "object", "properties": { "title": { "type": "string" }, "labels": { "type": "array", "items": { "type": "string" } } }, "required": ["title"] },
+        "outputSchema": { "type": "object", "properties": { "number": { "type": "integer" } }, "required": ["number"] },
+        "annotations": { "destructiveHint": true }
+      },
+      { "name": "list_repos", "description": "List repos", "inputSchema": { "type": "object" }, "annotations": { "readOnlyHint": true } }
+    ],
+    "fs": [{ "name": "read", "inputSchema": { "type": "object", "properties": { "path": { "type": "string" } }, "required": ["path"] } }]
+  },
+  "cases": [
+    {
+      "name": "signatures",
+      "detail": "signatures",
+      "expect": "declare const tools: {\n  fs: {\n    read(args: { path: string }): Promise<unknown>;\n  };\n  github: {\n    create_issue(args: { labels?: Array<string>; title: string }): Promise<unknown>;\n    list_repos(args?: Record<string, unknown>): Promise<unknown>;\n  };\n};"
+    },
+    {
+      "name": "names",
+      "detail": "names",
+      "expect": "tools.fs.read\ntools.github.create_issue  // Create an issue. Second line.\ntools.github.list_repos  // List repos"
+    },
+    {
+      "name": "full with custom root",
+      "detail": "full",
+      "rootName": "api",
+      "expect": "declare const api: {\n  fs: {\n    read(args: { path: string }): Promise<unknown>;\n  };\n  github: {\n    /**\n     * Create an issue.\n     * Second line.\n     * [DESTRUCTIVE: requires approval by default]\n     */\n    create_issue(args: { labels?: Array<string>; title: string }): Promise<{ number: number }>;\n    /**\n     * List repos\n     * [read-only]\n     */\n    list_repos(args?: Record<string, unknown>): Promise<unknown>;\n  };\n};"
+    }
+  ]
+}

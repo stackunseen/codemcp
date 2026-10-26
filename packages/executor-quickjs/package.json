@@ -1,0 +1,48 @@
+{
+  "name": "codemcp-executor-quickjs",
+  "version": "0.1.0",
+  "description": "Tier 0 codemcp executor: QuickJS compiled to WebAssembly, running on a Node worker thread with memory, stack and deadline limits.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stackunseen/codemcp.git",
+    "directory": "packages/executor-quickjs"
+  },
+  "homepage": "https://github.com/stackunseen/codemcp#readme",
+  "bugs": {
+    "url": "https://github.com/stackunseen/codemcp/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "tsup && vitest run"
+  },
+  "dependencies": {
+    "codemcp-core": "workspace:*",
+    "quickjs-emscripten": "^0.32.0"
+  },
+  "devDependencies": {
+    "codemcp-conformance": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

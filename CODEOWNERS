@@ -1,0 +1,5 @@
+# Security-sensitive paths require review from a maintainer listed here.
+/packages/core/src/bridge/   @vamsikrishna981
+/packages/executor-*/        @vamsikrishna981
+/docs/THREAT_MODEL.md        @vamsikrishna981
+/SECURITY.md                 @vamsikrishna981

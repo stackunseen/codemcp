@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>codemcp chat</title>
+<link rel="stylesheet" href="/chat.css">
+</head>
+<body>
+<a class="skip" href="#question">Skip to the message box</a>
+<h1 class="visually-hidden">codemcp chat</h1>
+<div id="live" class="visually-hidden" role="status" aria-live="polite"></div>
+
+<aside id="sidebar" aria-label="Settings and servers">
+  <div class="brand">
+    <span class="logo">codemcp</span>
+    <a class="hint" href="/playground.html">playground</a>
+    <button type="button" id="sidebar-toggle" class="icon" aria-label="Hide settings and servers" aria-controls="sidebar" aria-expanded="true">&times;</button>
+  </div>
+
+  <section>
+    <h2>Model</h2>
+    <label>Provider
+      <select id="provider">
+        <option value="anthropic">Anthropic Messages</option>
+        <option value="openai">OpenAI Responses</option>
+      </select>
+    </label>
+    <label>Model id
+      <input id="model" placeholder="e.g. claude-sonnet-5-5" spellcheck="false" autocapitalize="off" autocorrect="off">
+    </label>
+    <label>API key for the provider above
+      <span class="key-wrap">
+        <input id="key" type="password" placeholder="sk-ant-… or sk-…" autocomplete="off" spellcheck="false" aria-describedby="key-status">
+        <button type="button" id="reveal" class="icon" aria-label="Show key" aria-pressed="false">&#9673;</button>
+      </span>
+    </label>
+    <div class="row">
+      <label class="inline"><input id="remember" type="checkbox"> remember on this device (stored unencrypted)</label>
+      <button type="button" id="forget" class="ghost">Clear key</button>
+    </div>
+    <p class="hint" id="key-status" role="status"></p>
+    <p class="hint">Requests go straight from this browser to the provider; the key is never sent to the codemcp proxy. Tool calls run through the proxy on this machine.</p>
+  </section>
+
+  <section>
+    <h2>MCP servers <span id="server-count" class="count"></span></h2>
+    <ul id="servers" aria-label="MCP servers"></ul>
+    <details id="add-server">
+      <summary>Add a server</summary>
+      <form id="server-form">
+        <label>Name
+          <input id="server-name" placeholder="github" required spellcheck="false" autocapitalize="off">
+        </label>
+        <label>Connect with
+          <select id="server-kind">
+            <option value="stdio">a command</option>
+            <option value="http">a URL</option>
+          </select>
+        </label>
+        <label>Command or URL
+          <input id="server-target" placeholder="npx -y @modelcontextprotocol/server-github" required spellcheck="false" autocapitalize="off" autocorrect="off">
+        </label>
+        <label>Secret <span class="hint">(optional: NAME=value becomes an env var for a command, Header: value a header for a URL)</span>
+          <input id="server-secret" placeholder="GITHUB_PERSONAL_ACCESS_TOKEN=ghp_…" spellcheck="false" autocapitalize="off" autocorrect="off">
+        </label>
+        <div class="row">
+          <button type="submit" class="primary">Add server</button>
+          <button type="button" id="save-servers" class="ghost">Save to codemcp.config.json</button>
+        </div>
+        <p class="hint" id="server-status" role="status"></p>
+        <p class="hint">Secrets typed here go to the local proxy process only, and are written to disk as typed if you save.</p>
+      </form>
+    </details>
+  </section>
+</aside>
+<div id="scrim" hidden></div>
+
+<main id="chat-main">
+  <header>
+    <button type="button" id="sidebar-open" class="icon" aria-label="Show settings and servers" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
+    <div class="title">
+      <strong id="head-model">no model</strong>
+      <span class="hint" id="head-servers"></span>
+    </div>
+    <span class="hint" id="head-usage"></span>
+    <span id="run-state" class="state idle" role="status">Ready</span>
+    <button type="button" id="new-chat" class="ghost">New chat</button>
+  </header>
+
+  <div id="transcript" role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions" tabindex="0">
+    <div class="empty">
+      <h2>Ask something about your tools.</h2>
+      <p>The model searches the catalog, reads the stubs it needs, and runs one script against your connected servers. Every step shows up here, and anything that needs a decision waits for you.</p>
+      <div class="suggestions">
+        <button type="button" data-q="list every tool you can see, grouped by server">list every tool you can see, grouped by server</button>
+        <button type="button" data-q="which garden items are low on stock?">which garden items are low on stock? (demo catalog)</button>
+        <button type="button" data-q="find the customer with the most open deals and summarise them">find the customer with the most open deals (demo crm)</button>
+      </div>
+    </div>
+    <button type="button" id="jump" class="ghost" hidden>Jump to latest &darr;</button>
+  </div>
+
+  <form id="ask-form" class="composer">
+    <textarea id="question" rows="1" aria-label="Message" placeholder="Message the model. Enter to send, Shift+Enter for a new line."></textarea>
+    <button type="submit" id="ask" class="primary">Send</button>
+    <button type="button" id="stop" class="ghost" hidden>Stop</button>
+  </form>
+</main>
+
+<script type="module" src="/chat.js"></script>
+</body>
+</html>

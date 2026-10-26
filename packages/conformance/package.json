@@ -1,0 +1,45 @@
+{
+  "name": "codemcp-conformance",
+  "version": "0.1.0",
+  "description": "Hostile-script conformance suite every codemcp executor must pass.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stackunseen/codemcp.git",
+    "directory": "packages/conformance"
+  },
+  "homepage": "https://github.com/stackunseen/codemcp#readme",
+  "bugs": {
+    "url": "https://github.com/stackunseen/codemcp/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"conformance is exercised by executor packages\""
+  },
+  "dependencies": {
+    "codemcp-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

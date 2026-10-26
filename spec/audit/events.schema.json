@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codemcp.dev/spec/audit/events.schema.json",
+  "title": "codemcp audit event",
+  "description": "One line of the audit stream. Every bridged call produces exactly one `call` event.",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["type", "executionId", "ts", "codeHash", "codeBytes", "fixes", "executor"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "execution_start" },
+        "executionId": { "type": "string" },
+        "ts": { "type": "string" },
+        "traceparent": { "type": "string" },
+        "principal": { "type": "string" },
+        "codeHash": { "type": "string" },
+        "codeBytes": { "type": "integer" },
+        "fixes": { "type": "array", "items": { "type": "string" } },
+        "executor": { "type": "string" },
+        "code": { "type": "string" }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type", "executionId", "ts", "seq", "tool", "decision", "ok", "durationMs"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "call" },
+        "executionId": { "type": "string" },
+        "ts": { "type": "string" },
+        "traceparent": { "type": "string" },
+        "principal": { "type": "string" },
+        "seq": { "type": "integer" },
+        "tool": { "type": "string", "description": "Qualified upstream name `server.tool`." },
+        "decision": { "enum": ["allow", "deny", "approve"] },
+        "ok": { "type": "boolean" },
+        "durationMs": { "type": "number" },
+        "resultBytes": { "type": "integer" },
+        "truncated": { "type": "boolean" },
+        "error": { "type": "string" },
+        "args": {}
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type", "executionId", "ts", "status", "durationMs", "calls"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "execution_end" },
+        "executionId": { "type": "string" },
+        "ts": { "type": "string" },
+        "traceparent": { "type": "string" },
+        "principal": { "type": "string" },
+        "status": { "enum": ["completed", "error"] },
+        "durationMs": { "type": "number" },
+        "calls": { "type": "integer" },
+        "error": { "type": "string" },
+        "value": {},
+        "logs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["level", "message", "t"],
+            "properties": { "level": { "enum": ["log", "info", "warn", "error"] }, "message": { "type": "string" }, "t": { "type": "number" } }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type", "ts", "tool", "previousHash", "currentHash"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "pin_drift" },
+        "ts": { "type": "string" },
+        "tool": { "type": "string" },
+        "previousHash": { "type": "string" },
+        "currentHash": { "type": "string" }
+      }
+    }
+  ]
+}

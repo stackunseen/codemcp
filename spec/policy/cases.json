@@ -1,0 +1,20 @@
+{
+  "$comment": "Each case: a policy config, a tool (server, name, annotations), an optional principal, and the expected decision. Explicit rules beat annotations; annotations beat the default. Within a rule: principal id, then roles in the principal's order, then the rule default; no applicable subject and no default falls through to the next rule.",
+  "cases": [
+    { "name": "destructive annotation implies approve", "policy": {}, "tool": { "server": "github", "name": "delete_repo", "annotations": { "destructiveHint": true } }, "expect": "approve" },
+    { "name": "read-only annotation implies allow", "policy": {}, "tool": { "server": "github", "name": "list_repos", "annotations": { "readOnlyHint": true } }, "expect": "allow" },
+    { "name": "no annotation falls to the default allow", "policy": {}, "tool": { "server": "github", "name": "star" }, "expect": "allow" },
+    { "name": "explicit rule beats annotation", "policy": { "rules": { "github.delete_*": "allow", "github.*": "deny" }, "default": "deny" }, "tool": { "server": "github", "name": "delete_repo", "annotations": { "destructiveHint": true } }, "expect": "allow" },
+    { "name": "first matching rule wins", "policy": { "rules": { "github.delete_*": "allow", "github.*": "deny" }, "default": "deny" }, "tool": { "server": "github", "name": "list_repos", "annotations": { "readOnlyHint": true } }, "expect": "deny" },
+    { "name": "configured default applies when inference is off", "policy": { "default": "approve", "inferFromAnnotations": false }, "tool": { "server": "github", "name": "list_repos", "annotations": { "readOnlyHint": true } }, "expect": "approve" },
+    { "name": "wildcard matches everything", "policy": { "rules": { "*": "deny" } }, "tool": { "server": "any", "name": "thing" }, "expect": "deny" },
+    { "name": "pattern characters are literal except *", "policy": { "rules": { "github.delete_repo": "deny" } }, "tool": { "server": "githubXdelete_repo", "name": "x" }, "expect": "allow" },
+    { "name": "principal id beats role", "policy": { "rules": { "crm.refund": { "principals": { "ada": "allow" }, "roles": { "finance": "approve" }, "default": "deny" } } }, "tool": { "server": "crm", "name": "refund" }, "principal": { "id": "ada", "roles": ["finance"] }, "expect": "allow" },
+    { "name": "role decides when id does not match", "policy": { "rules": { "crm.refund": { "principals": { "ada": "allow" }, "roles": { "finance": "approve" }, "default": "deny" } } }, "tool": { "server": "crm", "name": "refund" }, "principal": { "id": "cy", "roles": ["finance"] }, "expect": "approve" },
+    { "name": "rule default applies to other principals", "policy": { "rules": { "crm.refund": { "principals": { "ada": "allow" }, "roles": { "finance": "approve" }, "default": "deny" } } }, "tool": { "server": "crm", "name": "refund" }, "principal": { "id": "bo", "roles": ["support"] }, "expect": "deny" },
+    { "name": "rule default applies without a principal", "policy": { "rules": { "crm.refund": { "principals": { "ada": "allow" }, "default": "deny" } } }, "tool": { "server": "crm", "name": "refund" }, "expect": "deny" },
+    { "name": "subject-only rule falls through when no subject matches", "policy": { "rules": { "crm.*": { "roles": { "finance": "allow" } }, "*": "deny" } }, "tool": { "server": "crm", "name": "refund" }, "principal": { "id": "x", "roles": ["support"] }, "expect": "deny" },
+    { "name": "subject-only rule applies when a role matches", "policy": { "rules": { "crm.*": { "roles": { "finance": "allow" } }, "*": "deny" } }, "tool": { "server": "crm", "name": "refund" }, "principal": { "id": "x", "roles": ["finance"] }, "expect": "allow" },
+    { "name": "roles are checked in the principal's order", "policy": { "rules": { "crm.*": { "roles": { "finance": "allow", "support": "deny" } } } }, "tool": { "server": "crm", "name": "refund" }, "principal": { "id": "x", "roles": ["support", "finance"] }, "expect": "deny" }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "catalog": { "command": "node", "args": ["servers/catalog-server.mjs"] },
+    "crm": { "command": "node", "args": ["servers/crm-server.mjs"], "env": { "CRM_TOKEN": "${CRM_TOKEN}" } }
+  },
+  "passthrough": ["catalog.get_item"],
+  "policy": {
+    "rules": { "catalog.add_note": "allow", "crm.refund_order": "deny" }
+  },
+  "budget": { "maxCalls": 50 },
+  "limits": { "timeoutMs": 10000 },
+  "audit": { "file": ".codemcp/audit.jsonl" },
+  "pins": { "file": ".codemcp/pins.json" }
+}

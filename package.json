@@ -1,0 +1,37 @@
+{
+  "name": "codemcp-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Vendor-neutral code mode for MCP: a drop-in proxy that turns any set of MCP servers into a typed API the model programs against inside a sandbox.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stackunseen/codemcp.git"
+  },
+  "homepage": "https://github.com/stackunseen/codemcp#readme",
+  "bugs": {
+    "url": "https://github.com/stackunseen/codemcp/issues"
+  },
+  "type": "module",
+  "packageManager": "pnpm@11.5.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter './packages/*' run build",
+    "test": "pnpm -r --filter './packages/*' run test",
+    "typecheck": "pnpm -r --filter './packages/*' run typecheck",
+    "lint": "pnpm -r --filter './packages/*' run typecheck",
+    "clean": "pnpm -r --filter './packages/*' exec rm -rf dist",
+    "spec:sync": "node scripts/sync-spec.mjs",
+    "spec:check": "node scripts/sync-spec.mjs --check",
+    "release:current": "node scripts/release.mjs current",
+    "release:bump": "node scripts/release.mjs bump"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

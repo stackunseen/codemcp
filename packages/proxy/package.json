@@ -1,0 +1,52 @@
+{
+  "name": "codemcp",
+  "version": "0.1.0",
+  "description": "codemcp CLI and MCP server: one MCP server in front of all your MCP servers, exposing search / describe / execute.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stackunseen/codemcp.git",
+    "directory": "packages/proxy"
+  },
+  "homepage": "https://github.com/stackunseen/codemcp#readme",
+  "bugs": {
+    "url": "https://github.com/stackunseen/codemcp/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "codemcp": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "codemcp-core": "workspace:*",
+    "codemcp-executor-quickjs": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.32.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0",
+    "ajv": "^8.17.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

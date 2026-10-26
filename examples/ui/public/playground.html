@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>codemcp playground</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>codemcp</h1>
+  <p>What the model sees, and what happens when it runs code. <a href="/">Chat with your own API key</a> to drive a real model against these tools.</p>
+</header>
+
+<main>
+  <section id="tools-panel">
+    <h2>Tools</h2>
+    <p class="hint">The client is shown <span id="advertised"></span>.</p>
+    <p class="hint">Servers: <span id="servers"></span></p>
+    <p class="hint">The registry behind them:</p>
+    <ul id="registry"></ul>
+  </section>
+
+  <section id="stubs-panel">
+    <h2>Stubs</h2>
+    <form id="describe-form">
+      <input id="search-input" placeholder="search, e.g. notes or garden">
+      <select id="detail">
+        <option value="names">names</option>
+        <option value="signatures" selected>signatures</option>
+        <option value="full">full</option>
+      </select>
+      <button type="submit">Search</button>
+      <button type="button" id="describe-all">Describe all</button>
+    </form>
+    <pre id="stubs"></pre>
+  </section>
+
+  <section id="run-panel">
+    <h2>Execute</h2>
+    <p class="hint">Body of an async function. <code>tools.&lt;server&gt;.&lt;tool&gt;(args)</code> returns a Promise.</p>
+    <textarea id="code" spellcheck="false"></textarea>
+    <div class="row">
+      <button id="run">Run</button>
+      <select id="samples"></select>
+      <span id="status"></span>
+    </div>
+    <pre id="output"></pre>
+  </section>
+
+  <section id="approvals-panel">
+    <h2>Approvals</h2>
+    <p class="hint">Calls parked for a human. The script is suspended inside the call until you decide; the result then appears in Execute.</p>
+    <ul id="approvals"><li class="hint">nothing waiting</li></ul>
+  </section>
+
+  <section id="audit-panel">
+    <h2>Audit</h2>
+    <table>
+      <thead><tr><th>time</th><th>event</th><th>tool</th><th>decision</th><th>result</th><th>ms</th></tr></thead>
+      <tbody id="audit"></tbody>
+    </table>
+  </section>
+</main>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

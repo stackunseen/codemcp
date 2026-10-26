@@ -1,0 +1,78 @@
+name: release
+# Publishes every package under packages/ to npm at one shared version.
+# Run it from the Actions tab (workflow_dispatch). It bumps the version, tags
+# the commit, publishes with provenance, and creates a GitHub release.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump, or an exact version like 0.2.0"
+        required: true
+        default: patch
+        type: string
+      tag:
+        description: "npm dist-tag"
+        required: true
+        default: latest
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm spec:check
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      - name: Bump version
+        id: bump
+        run: |
+          echo "version=$(node scripts/release.mjs bump '${{ inputs.bump }}')" >> "$GITHUB_OUTPUT"
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/*/package.json
+          git commit -m "Release v${{ steps.bump.outputs.version }}"
+          git tag "v${{ steps.bump.outputs.version }}"
+
+      - name: Publish to npm
+        # First release of a package needs NPM_TOKEN (npm trusted publishing can
+        # only be configured for packages that already exist). After that, set up
+        # trusted publishing for each package on npmjs.com and delete the secret:
+        # the id-token permission above lets npm mint provenance via OIDC.
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm -r --filter './packages/*' publish --access public --no-git-checks --tag '${{ inputs.tag }}'
+
+      - name: Push commit and tag
+        run: git push origin HEAD:main "v${{ steps.bump.outputs.version }}"
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.bump.outputs.version }}" --generate-notes --title "v${{ steps.bump.outputs.version }}" \
+            $([ '${{ inputs.tag }}' != 'latest' ] && echo --prerelease)

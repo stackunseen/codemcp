@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+*.log
+.codemcp/
+*.tsbuildinfo
+.DS_Store
+# raw research notes stay local; the synthesized report in docs/reports is the tracked artifact
+docs/research_notes/

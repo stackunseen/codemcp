@@ -1,0 +1,29 @@
+{
+  "$schema": "../../spec/config/codemcp.config.schema.json",
+  "servers": {
+    "fs": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}" }
+    }
+  },
+  "passthrough": ["fs.read_text_file"],
+  "policy": {
+    "rules": {
+      "fs.write_file": "approve",
+      "fs.move_file": "approve",
+      "fs.edit_file": "approve",
+      "github.create_*": "approve",
+      "github.push_*": "approve",
+      "github.*": "allow"
+    }
+  },
+  "budget": { "maxCalls": 100, "maxResultBytes": 262144 },
+  "limits": { "timeoutMs": 20000 },
+  "audit": { "file": ".codemcp/audit.jsonl", "includeResults": true },
+  "pins": { "file": ".codemcp/pins.json" }
+}

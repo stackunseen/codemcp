@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codemcp.dev/spec/config/codemcp.config.schema.json",
+  "title": "codemcp configuration",
+  "type": "object",
+  "required": ["servers"],
+  "additionalProperties": false,
+  "properties": {
+    "servers": {
+      "type": "object",
+      "description": "Upstream MCP servers keyed by the name used as the stub namespace.",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_-]+$" },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["command"],
+            "additionalProperties": false,
+            "properties": {
+              "command": { "type": "string" },
+              "args": { "type": "array", "items": { "type": "string" } },
+              "env": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Values may reference ${VAR} from the proxy's environment." },
+              "cwd": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["url"],
+            "additionalProperties": false,
+            "properties": {
+              "url": { "type": "string" },
+              "headers": { "type": "object", "additionalProperties": { "type": "string" } }
+            }
+          }
+        ]
+      }
+    },
+    "passthrough": { "type": "array", "items": { "type": "string" }, "description": "Qualified-name patterns exposed directly as ordinary MCP tools." },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default": { "$ref": "#/$defs/decision" },
+        "inferFromAnnotations": { "type": "boolean" },
+        "rules": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "$ref": "#/$defs/decision" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "default": { "$ref": "#/$defs/decision" },
+                  "roles": { "type": "object", "additionalProperties": { "$ref": "#/$defs/decision" } },
+                  "principals": { "type": "object", "additionalProperties": { "$ref": "#/$defs/decision" } }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxCalls": { "type": "integer", "minimum": 1 },
+        "maxResultBytes": { "type": "integer", "minimum": 1 },
+        "maxTotalBytes": { "type": "integer", "minimum": 1 },
+        "maxReturnBytes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timeoutMs": { "type": "integer", "minimum": 1 },
+        "memoryLimitBytes": { "type": "integer", "minimum": 1 },
+        "maxStackBytes": { "type": "integer", "minimum": 1 },
+        "maxLogEntries": { "type": "integer", "minimum": 0 },
+        "maxLogBytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file": { "oneOf": [{ "type": "string" }, { "const": false }] },
+        "stderr": { "type": "boolean" },
+        "includeArgs": { "type": "boolean" },
+        "includeCode": { "type": "boolean" },
+        "includeResults": { "type": "boolean" },
+        "webhook": {
+          "type": "object",
+          "required": ["url"],
+          "additionalProperties": false,
+          "properties": {
+            "url": { "type": "string" },
+            "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+            "batchMs": { "type": "integer", "minimum": 0 },
+            "maxBatch": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "pins": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file": { "oneOf": [{ "type": "string" }, { "const": false }] },
+        "autoApproveNew": { "type": "boolean" }
+      }
+    },
+    "stubs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "rootName": { "type": "string", "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$" } }
+    },
+    "identity": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "properties": { "mode": { "const": "local" } } },
+        {
+          "type": "object",
+          "required": ["mode", "tokens"],
+          "additionalProperties": false,
+          "properties": { "mode": { "const": "static" }, "tokens": { "type": "object", "additionalProperties": { "$ref": "#/$defs/principal" } } }
+        },
+        {
+          "type": "object",
+          "required": ["mode"],
+          "additionalProperties": false,
+          "properties": { "mode": { "const": "trusted-header" }, "header": { "type": "string" }, "rolesHeader": { "type": "string" } }
+        }
+      ]
+    },
+    "approvals": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "oneOf": [{ "type": "boolean" }, { "const": "auto" }] },
+        "timeoutMs": { "type": "integer", "minimum": 1 },
+        "operatorRoles": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "decision": { "enum": ["allow", "deny", "approve"] },
+    "principal": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "roles": { "type": "array", "items": { "type": "string" } },
+        "tenant": { "type": "string" },
+        "claims": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$comment": "JSON Schema in, TypeScript type expression out. Deterministic: object keys sorted, unknown constructs degrade to `unknown`, cycles cut at depth 12.",
+  "cases": [
+    { "schema": { "type": "string" }, "expect": "string" },
+    { "schema": { "type": "integer" }, "expect": "number" },
+    { "schema": { "type": ["string", "null"] }, "expect": "string | null" },
+    { "schema": { "type": "array", "items": { "type": "number" } }, "expect": "Array<number>" },
+    { "schema": { "enum": ["a", "b", 1] }, "expect": "\"a\" | \"b\" | 1" },
+    { "schema": { "const": true }, "expect": "true" },
+    { "schema": { "type": "object", "properties": { "zeta": { "type": "string", "description": "last" }, "alpha": { "type": "number" }, "needs-quotes": { "type": "boolean" } }, "required": ["alpha"] }, "expect": "{ alpha: number; \"needs-quotes\"?: boolean; /** last */ zeta?: string }" },
+    { "schema": { "anyOf": [{ "type": "string" }, { "type": "number" }] }, "expect": "string | number" },
+    { "schema": { "oneOf": [{ "type": "string" }, { "type": "string" }] }, "expect": "string" },
+    { "schema": { "allOf": [{ "type": "object", "properties": { "a": { "type": "string" } } }, { "type": "object", "properties": { "b": { "type": "number" } } }] }, "expect": "{ a?: string } & { b?: number }" },
+    { "schema": { "type": "object", "additionalProperties": { "type": "number" } }, "expect": "{ [key: string]: number }" },
+    { "schema": { "type": "object" }, "expect": "Record<string, unknown>" },
+    { "schema": { "type": "object", "additionalProperties": false }, "expect": "Record<string, never>" },
+    { "schema": { "type": "object", "properties": { "node": { "$ref": "#/$defs/Node" } }, "$defs": { "Node": { "type": "object", "properties": { "v": { "type": "number" } } } } }, "expect": "{ node?: { v?: number } }" },
+    { "schema": { "type": "array", "items": [{ "type": "string" }, { "type": "number" }] }, "expect": "[string, number]" }
+  ]
+}

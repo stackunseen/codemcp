@@ -1,0 +1,13 @@
+{
+  "$comment": "Every error code a guest can observe on a rejected call. `fatal` codes also end the execution, even if the script catches them.",
+  "codes": {
+    "unknown_tool": { "fatal": false, "meaning": "no such stub; use search / describe" },
+    "invalid_arguments": { "fatal": false, "meaning": "failed schema validation" },
+    "upstream_error": { "fatal": false, "meaning": "the upstream server returned an error, timed out or was cancelled" },
+    "policy_denied": { "fatal": false, "meaning": "denied by a policy rule" },
+    "approval_required": { "fatal": false, "meaning": "the call needed human approval and none was granted" },
+    "pin_drifted": { "fatal": true, "meaning": "the tool definition changed since it was approved" },
+    "budget_exceeded": { "fatal": true, "meaning": "call count or byte budget exhausted" }
+  },
+  "executionCodes": ["syntax_error", "runtime_error", "timeout", "memory_limit", "stack_overflow", "executor_failure", "result_too_large", "cancelled"]
+}

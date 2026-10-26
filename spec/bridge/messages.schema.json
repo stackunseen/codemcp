@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codemcp.dev/spec/bridge/messages.schema.json",
+  "title": "codemcp bridge messages",
+  "description": "Everything that crosses between a sandbox guest and the host. JSON only; no functions, host objects or schema instances.",
+  "$defs": {
+    "guestCall": {
+      "type": "object",
+      "required": ["type", "seq", "tool", "args"],
+      "properties": {
+        "type": { "const": "call" },
+        "seq": { "type": "integer", "minimum": 1, "description": "Monotonic per execution; the host replies with the same seq." },
+        "tool": { "type": "string", "description": "Stub key `namespace.stubName`, never the upstream name." },
+        "args": {}
+      },
+      "additionalProperties": false
+    },
+    "guestLog": {
+      "type": "object",
+      "required": ["type", "level", "message"],
+      "properties": {
+        "type": { "const": "log" },
+        "level": { "enum": ["log", "info", "warn", "error"] },
+        "message": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "hostReply": {
+      "type": "object",
+      "required": ["v", "seq", "ok"],
+      "properties": {
+        "v": { "const": 1 },
+        "seq": { "type": "integer" },
+        "ok": { "type": "boolean" },
+        "value": {},
+        "error": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+          "additionalProperties": false
+        }
+      },
+      "oneOf": [
+        { "properties": { "ok": { "const": true } }, "required": ["value"], "not": { "required": ["error"] } },
+        { "properties": { "ok": { "const": false } }, "required": ["error"], "not": { "required": ["value"] } }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [{ "$ref": "#/$defs/guestCall" }, { "$ref": "#/$defs/guestLog" }, { "$ref": "#/$defs/hostReply" }]
+}

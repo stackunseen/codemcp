@@ -1,0 +1,49 @@
+{
+  "name": "codemcp-core",
+  "version": "0.1.0",
+  "description": "Core of codemcp: tool registry, JSON Schema to TypeScript stubs, JSON-only bridge, policy, budgets, pinning, audit, search.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stackunseen/codemcp.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/stackunseen/codemcp#readme",
+  "bugs": {
+    "url": "https://github.com/stackunseen/codemcp/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "acorn": "^8.15.0",
+    "ajv": "^8.17.0",
+    "minisearch": "^7.1.0",
+    "esbuild": "^0.27.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
