@@ -38,7 +38,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm spec:check
       - run: pnpm build
@@ -58,12 +57,10 @@ jobs:
           git tag "v${{ steps.bump.outputs.version }}"
 
       - name: Publish to npm
-        # First release of a package needs NPM_TOKEN (npm trusted publishing can
-        # only be configured for packages that already exist). After that, set up
-        # trusted publishing for each package on npmjs.com and delete the secret:
-        # the id-token permission above lets npm mint provenance via OIDC.
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # Authenticates with npm trusted publishing (OIDC): each package on
+        # npmjs.com trusts this repository's release.yml, and the id-token
+        # permission above lets pnpm mint a short-lived token plus provenance.
+        # Do not set NODE_AUTH_TOKEN here, even empty: it disables OIDC.
         run: pnpm -r --filter './packages/*' publish --access public --no-git-checks --tag '${{ inputs.tag }}'
 
       - name: Push commit and tag
