@@ -1,6 +1,6 @@
 {
   "name": "codemcp-conformance",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hostile-script conformance suite every codemcp executor must pass.",
   "license": "Apache-2.0",
   "repository": {
