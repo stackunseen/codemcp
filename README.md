@@ -4,11 +4,13 @@ One MCP server in front of all the MCP servers you already use. Your model sees 
 
 ![codemcp demo: a remote MCP server is added from the sidebar; one prompt becomes search, describe and a single execute; the destructive delete parks on an approval card until you decide](docs/media/codemcp-demo.gif)
 
+[![tokens vs direct MCP](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fstackunseen%2Fcodemcp%2Fmain%2Fdocs%2Fbenchmark.json)](docs/BENCHMARK.md)
+
 > Pre-alpha. APIs will change. codemcp speaks MCP 2025-11-25 through SDK 1.x today; the move to SDK v2 and the 2026-07-28 revision is next. [docs/STATUS.md](docs/STATUS.md) lists what works and what does not yet.
 
 ## Why
 
-Tool definitions for a handful of MCP servers can eat 50K tokens before you have said a word. With codemcp the model starts with about 1K and looks the rest up when it needs it.
+Tool definitions for a handful of MCP servers can eat 50K tokens before you have said a word. With codemcp the model starts with about 1K and looks the rest up when it needs it. [docs/BENCHMARK.md](docs/BENCHMARK.md) measures the difference on real servers, with correctness checks, from a reproducible harness in `examples/benchmark/`.
 
 Loops, filters and joins over tool results run inside the sandbox. Only the final answer comes back to the model, not every intermediate row.
 

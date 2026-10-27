@@ -1,0 +1,83 @@
+{
+  "$comment": "Read-only questions over the servers in servers.json. `expect` holds regexes (case-insensitive) the final answer must all match for the run to pass. Nothing here writes, moves or deletes anything.",
+  "tasks": [
+    {
+      "id": "fs-list-packages",
+      "question": "The filesystem server is rooted at a source repository. List the directories directly under its `packages` folder and state how many there are.",
+      "servers": ["fs"],
+      "expect": ["\\b4\\b", "executor-quickjs"]
+    },
+    {
+      "id": "fs-read-license",
+      "question": "Which open-source license does the repository on the filesystem server use? Read its top-level LICENSE file and answer with the license name.",
+      "servers": ["fs"],
+      "expect": ["Apache"]
+    },
+    {
+      "id": "fs-search-then-read",
+      "question": "Search the filesystem server for files named `codemcp.config.json`, then read the one under `examples/basic` and tell me the names of the servers it configures.",
+      "servers": ["fs"],
+      "expect": ["catalog", "crm"]
+    },
+    {
+      "id": "fs-package-name",
+      "question": "Read `packages/proxy/package.json` from the filesystem server and report the package's name.",
+      "servers": ["fs"],
+      "expect": ["codemcp-cli"]
+    },
+    {
+      "id": "everything-sum",
+      "question": "Use the everything server to add 17 and 25 and report the result.",
+      "servers": ["everything"],
+      "expect": ["\\b42\\b"]
+    },
+    {
+      "id": "everything-echo",
+      "question": "Use the everything server's echo tool to echo the phrase `benchmark ping` and tell me exactly what came back.",
+      "servers": ["everything"],
+      "expect": ["benchmark ping"]
+    },
+    {
+      "id": "count-everything-tools",
+      "question": "List the names of every tool the everything server offers and say how many there are.",
+      "servers": ["everything"],
+      "expect": ["echo", "\\b1[0-9]\\b"]
+    },
+    {
+      "id": "memory-search",
+      "question": "Search the memory server's knowledge graph for entities about `codemcp` and report how many you found.",
+      "servers": ["memory"],
+      "expect": ["\\b0\\b|\\bzero\\b|\\bno\\b|\\bnone\\b|\\bempty\\b|\\bnothing\\b|\\bdidn.t find\\b|\\bnot find\\b"]
+    },
+    {
+      "id": "thinking-prime",
+      "question": "Use the sequential thinking tool for three thoughts to work out whether 221 is prime. Then answer: is it prime, and if not, what are its factors?",
+      "servers": ["thinking"],
+      "expect": ["\\b13\\b", "\\b17\\b"]
+    },
+    {
+      "id": "mslearn-az-login",
+      "question": "Search Microsoft Learn for the Azure CLI command that signs you in to Azure and tell me the exact command.",
+      "servers": ["mslearn"],
+      "expect": ["az login"]
+    },
+    {
+      "id": "deepwiki-transports",
+      "question": "Ask DeepWiki which transports the `modelcontextprotocol/typescript-sdk` repository supports and list them.",
+      "servers": ["deepwiki"],
+      "expect": ["stdio", "http|streamable|sse"]
+    },
+    {
+      "id": "join-fs-everything",
+      "question": "Count the directories directly under the `packages` folder of the filesystem server, then use the everything server to add that count to 100. Report both the count and the sum.",
+      "servers": ["fs", "everything"],
+      "expect": ["\\b4\\b", "\\b104\\b"]
+    },
+    {
+      "id": "join-memory-everything",
+      "question": "Read the memory server's whole knowledge graph and count its entities. Then use the everything server to add 1 to that count. Report both numbers.",
+      "servers": ["memory", "everything"],
+      "expect": ["\\b0\\b|\\bzero\\b|\\bno entities\\b|\\bempty\\b", "\\b1\\b"]
+    }
+  ]
+}

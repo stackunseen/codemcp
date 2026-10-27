@@ -9,8 +9,11 @@
     "serve": "node ../packages/proxy/dist/cli.js serve --config basic/codemcp.config.json",
     "build": "echo \"examples have no build step\"",
     "typecheck": "echo \"examples are plain JavaScript\"",
-    "test": "node basic/run.mjs && node --test agents/mock-api.test.mjs",
-    "test:agents": "node --test agents/mock-api.test.mjs"
+    "benchmark": "node benchmark/run.mjs",
+    "benchmark:report": "node benchmark/report.mjs",
+    "test": "node basic/run.mjs && node --test agents/mock-api.test.mjs && node --test benchmark/benchmark.test.mjs",
+    "test:agents": "node --test agents/mock-api.test.mjs",
+    "test:benchmark": "node --test benchmark/benchmark.test.mjs"
   },
   "dependencies": {
     "codemcp-core": "workspace:*",

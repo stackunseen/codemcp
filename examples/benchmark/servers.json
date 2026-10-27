@@ -1,0 +1,25 @@
+{
+  "$comment": "Real MCP servers the benchmark runs against. Each set is a codemcp `servers` map; `${VAR}` values come from the environment and a set whose variables are unset is skipped. Relative args are resolved against this folder.",
+  "sets": {
+    "no-key": {
+      "description": "Public servers that need no credentials.",
+      "servers": {
+        "fs": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "../.."] },
+        "memory": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"], "env": { "MEMORY_FILE_PATH": "./results/.memory.json" } },
+        "everything": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-everything"] },
+        "thinking": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"] },
+        "playwright": { "command": "npx", "args": ["-y", "@playwright/mcp@latest", "--headless"] },
+        "deepwiki": { "url": "https://mcp.deepwiki.com/mcp" },
+        "mslearn": { "url": "https://learn.microsoft.com/api/mcp" }
+      }
+    },
+    "with-keys": {
+      "description": "The no-key set plus servers that need a token. Skipped when any referenced variable is unset.",
+      "extends": "no-key",
+      "servers": {
+        "github": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"], "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}" } },
+        "brave": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-brave-search"], "env": { "BRAVE_API_KEY": "${BRAVE_API_KEY}" } }
+      }
+    }
+  }
+}

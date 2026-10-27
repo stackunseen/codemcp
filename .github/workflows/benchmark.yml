@@ -1,0 +1,72 @@
+name: benchmark
+# Runs examples/benchmark against real MCP servers with real model keys and opens a pull request
+# with the new results, docs/BENCHMARK.md and the badge endpoint. Nothing is pushed to main directly.
+on:
+  workflow_dispatch:
+    inputs:
+      set:
+        description: "Server set(s) from examples/benchmark/servers.json, comma separated"
+        required: true
+        default: no-key
+        type: string
+      repeats:
+        description: "Repeats per task and model"
+        required: true
+        default: "2"
+        type: string
+      models:
+        description: "Model ids, comma separated"
+        required: true
+        default: claude-sonnet-5-5,claude-haiku-5-5,gpt-5.6
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Run the benchmark
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}
+        run: |
+          pnpm --filter codemcp-examples benchmark -- --set '${{ inputs.set }}' --repeats '${{ inputs.repeats }}' --models '${{ inputs.models }}'
+
+      - name: Open a pull request with the results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          stamp="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+          branch="benchmark/${stamp}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add examples/benchmark/results docs/BENCHMARK.md docs/benchmark.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -s -m "Benchmark: ${{ inputs.set }} x${{ inputs.repeats }} on ${{ inputs.models }} (${stamp})"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "Benchmark results ${stamp}" \
+            --body "$(printf 'Benchmark run from the Actions tab.\n\n- Set: `%s`\n- Repeats: %s\n- Models: `%s`\n\nSee docs/BENCHMARK.md in this branch for the tables.' '${{ inputs.set }}' '${{ inputs.repeats }}' '${{ inputs.models }}')"
