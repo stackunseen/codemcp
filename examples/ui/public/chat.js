@@ -50,19 +50,23 @@ const PROVIDERS = {
     label: "Anthropic",
     defaultModel: "claude-sonnet-5-5",
     storageKey: "codemcp.anthropic.key",
-    messages: [],
+    state: { messages: [] },
     reset() {
-      this.messages = [];
+      this.state = { messages: [] };
     },
     snapshot() {
-      return this.messages.slice();
+      return { messages: this.state.messages.slice() };
     },
     restore(s) {
-      this.messages = s;
+      this.state = { messages: s.messages.slice() };
+    },
+    /** An independent copy of a snapshot, so two runs can start from the same history without sharing it. */
+    fork(s) {
+      return { messages: s.messages.slice() };
     },
     toolShape: (t) => ({ name: t.name, description: t.description, input_schema: t.inputSchema }),
-    async *turns({ key, model, tools, question, signal, callTool, system = SYSTEM }) {
-      this.messages.push({ role: "user", content: question });
+    async *turns({ key, model, tools, question, signal, callTool, system = SYSTEM, state = this.state }) {
+      state.messages.push({ role: "user", content: question });
       for (let i = 0; i < MAX_ROUNDS; i++) {
         const res = await fetch(providerUrl("https://api.anthropic.com", "/v1/messages"), {
           method: "POST",
@@ -73,12 +77,12 @@ const PROVIDERS = {
             "anthropic-dangerous-direct-browser-access": "true",
             "content-type": "application/json",
           },
-          body: JSON.stringify({ model, max_tokens: 8192, system, tools, messages: this.messages }),
+          body: JSON.stringify({ model, max_tokens: 8192, system, tools, messages: state.messages }),
         });
         if (!res.ok) throw await providerError(res, "Anthropic");
         const reply = await res.json();
         yield { kind: "usage", ...usageOf(reply) };
-        this.messages.push({ role: "assistant", content: reply.content });
+        state.messages.push({ role: "assistant", content: reply.content });
         for (const b of reply.content) if (b.type === "text" && b.text.trim()) yield { kind: "text", text: b.text };
         if (reply.stop_reason === "max_tokens") yield { kind: "note", text: "The reply hit the token limit and was cut off." };
         const uses = reply.content.filter((b) => b.type === "tool_use");
@@ -91,7 +95,7 @@ const PROVIDERS = {
           yield { kind: "result", text };
           results.push({ type: "tool_result", tool_use_id: u.id, content: text });
         }
-        this.messages.push({ role: "user", content: results });
+        state.messages.push({ role: "user", content: results });
       }
       yield { kind: "note", text: `Stopped after ${MAX_ROUNDS} tool rounds.` };
     },
@@ -100,18 +104,21 @@ const PROVIDERS = {
     label: "OpenAI",
     defaultModel: "gpt-5.6",
     storageKey: "codemcp.openai.key",
-    previous: undefined,
+    state: { previous: undefined },
     reset() {
-      this.previous = undefined;
+      this.state = { previous: undefined };
     },
     snapshot() {
-      return this.previous;
+      return { ...this.state };
     },
     restore(s) {
-      this.previous = s;
+      this.state = { ...s };
+    },
+    fork(s) {
+      return { ...s };
     },
     toolShape: (t) => ({ type: "function", name: t.name, description: t.description, parameters: t.inputSchema }),
-    async *turns({ key, model, tools, question, signal, callTool, system = SYSTEM }) {
+    async *turns({ key, model, tools, question, signal, callTool, system = SYSTEM, state = this.state }) {
       let input = [{ role: "user", content: question }];
       for (let i = 0; i < MAX_ROUNDS; i++) {
         const res = await fetch(providerUrl("https://api.openai.com", "/v1/responses"), {
@@ -123,13 +130,13 @@ const PROVIDERS = {
             instructions: system,
             tools,
             input,
-            ...(this.previous ? { previous_response_id: this.previous } : {}),
+            ...(state.previous ? { previous_response_id: state.previous } : {}),
           }),
         });
         if (!res.ok) throw await providerError(res, "OpenAI");
         const reply = await res.json();
         yield { kind: "usage", ...usageOf(reply) };
-        this.previous = reply.id;
+        state.previous = reply.id;
         // The REST shape has no output_text field; the text lives in message items.
         const text = reply.output
           .filter((o) => o.type === "message")
@@ -542,15 +549,21 @@ function messageActions(text, section) {
   return bar;
 }
 
-function showThinking(on) {
-  thinking?.remove();
-  thinking = undefined;
+/** The three-dot indicator lives on the run that is waiting, so two side-by-side runs each get their own. */
+function showThinking(on, r = run) {
+  if (!r) {
+    thinking?.remove();
+    thinking = undefined;
+    return;
+  }
+  r.thinking?.remove();
+  r.thinking = undefined;
   if (!on) return;
-  thinking = el("div", "thinking");
-  thinking.setAttribute("role", "status");
-  thinking.setAttribute("aria-label", "Waiting for the model");
-  thinking.innerHTML = "<i></i><i></i><i></i>";
-  (run?.section ?? $("transcript")).appendChild(thinking);
+  r.thinking = el("div", "thinking");
+  r.thinking.setAttribute("role", "status");
+  r.thinking.setAttribute("aria-label", "Waiting for the model");
+  r.thinking.innerHTML = "<i></i><i></i><i></i>";
+  r.section.appendChild(r.thinking);
   scrollDown();
 }
 
@@ -568,8 +581,8 @@ function describeCall(name, args) {
 }
 
 /** All tool calls of one question live in a group that sums them up, so the answer is not buried. */
-function toolGroup() {
-  if (run.group) return run.group;
+function toolGroup(r = run) {
+  if (r.group) return r.group;
   const g = el("details", "group");
   g.open = true;
   const s = el("summary");
@@ -578,25 +591,25 @@ function toolGroup() {
   s.append(chev, el("span", "label", "Using tools…"), el("span", "ms", ""));
   s.setAttribute("aria-label", "Tool calls for this question");
   g.appendChild(s);
-  run.section.appendChild(g);
-  run.group = g;
-  run.calls = 0;
-  run.failed = 0;
-  run.toolMs = 0;
+  r.section.appendChild(g);
+  r.group = g;
+  r.calls = 0;
+  r.failed = 0;
+  r.toolMs = 0;
   return g;
 }
 
-function updateGroup(running) {
-  const label = run.group.querySelector(":scope > summary .label");
-  const ms = run.group.querySelector(":scope > summary .ms");
+function updateGroup(running, r = run) {
+  const label = r.group.querySelector(":scope > summary .label");
+  const ms = r.group.querySelector(":scope > summary .ms");
   if (running) {
     label.textContent = "Using tools…";
-    run.group.classList.add("running");
+    r.group.classList.add("running");
     return;
   }
-  run.group.classList.remove("running");
-  label.textContent = `Used ${run.calls} tool${run.calls === 1 ? "" : "s"}${run.failed ? ` · ${run.failed} failed` : ""}`;
-  ms.textContent = fmtMs(run.toolMs);
+  r.group.classList.remove("running");
+  label.textContent = `Used ${r.calls} tool${r.calls === 1 ? "" : "s"}${r.failed ? ` · ${r.failed} failed` : ""}`;
+  ms.textContent = fmtMs(r.toolMs);
 }
 
 const MAX_SHOWN = 200_000;
@@ -624,10 +637,11 @@ function codeSection(label, getText) {
 }
 
 /** A tool call renders as a collapsed card: name, summary and a live timer, folding open to code and result. */
-function callBlock(name, args) {
-  const group = toolGroup();
-  run.calls++;
-  updateGroup(true);
+function callBlock(name, args, r = run) {
+  const group = toolGroup(r);
+  r.calls++;
+  updateGroup(true, r);
+  r.onProgress?.();
   const details = el("details", "tool running");
   const summary = el("summary");
   const chev = el("span", "chev", "▶");
@@ -664,7 +678,7 @@ function callBlock(name, args) {
     done(text) {
       clearInterval(timer);
       const took = performance.now() - started;
-      run.toolMs += took;
+      r.toolMs += took;
       resultText = text;
       result.set(text);
       details.classList.remove("running");
@@ -673,17 +687,17 @@ function callBlock(name, args) {
       if (failed) {
         details.classList.add("failed");
         details.open = true;
-        run.failed++;
+        r.failed++;
       }
       announce(`${name} ${failed ? "failed" : "finished"}`);
-      updateGroup(false);
+      updateGroup(false, r);
       scrollDown();
     },
     abort() {
       clearInterval(timer);
       ms.textContent = "stopped";
       details.classList.remove("running");
-      updateGroup(false);
+      updateGroup(false, r);
     },
   };
 }
@@ -691,7 +705,7 @@ function callBlock(name, args) {
 // ----- approvals: a paused execute call renders a card; the person decides, the model only sees the final result
 const PAUSED_RE = /^Paused: execution (\S+) is waiting for approval of call #(\d+) (\S+?)\((.*)\)\. .*?parked until (\S+);/s;
 
-function approvalCard({ executionId, seq, tool, args, expiresAt }) {
+function approvalCard({ executionId, seq, tool, args, expiresAt }, r = run) {
   return new Promise((resolve) => {
     const card = el("div", "approval");
     card.setAttribute("role", "group");
@@ -720,8 +734,8 @@ function approvalCard({ executionId, seq, tool, args, expiresAt }) {
     buttons.append(deny, approve);
     foot.appendChild(buttons);
     card.append(head, title, why, argsBlock, stats, foot);
-    run.section.appendChild(card);
-    showThinking(false);
+    r.section.appendChild(card);
+    showThinking(false, r);
     announce(`Approval needed for ${tool}`);
     scrollDown(true);
     approve.focus();
@@ -748,13 +762,13 @@ function approvalCard({ executionId, seq, tool, args, expiresAt }) {
   });
 }
 
-async function callTool(name, args, signal, path = "/api/call") {
+async function callTool(name, args, signal, path = "/api/call", r = run) {
   let { text } = await api("POST", path, { name, args }, signal);
   // A script may stop more than once; each stop is one card.
   for (let m = text.match(PAUSED_RE); m; m = text.match(PAUSED_RE)) {
     const [, executionId, seq, tool, callArgs, expiresAt] = m;
-    const allow = await approvalCard({ executionId, seq: Number(seq), tool, args: callArgs, expiresAt });
-    showThinking(true);
+    const allow = await approvalCard({ executionId, seq: Number(seq), tool, args: callArgs, expiresAt }, r);
+    showThinking(true, r);
     ({ text } = await api("POST", "/api/approvals", { executionId, seq: Number(seq), allow }, signal));
   }
   return text;
@@ -794,64 +808,75 @@ async function toolsFor(mode, p, signal) {
 /**
  * One question through one mode: a section in the transcript with its tool calls, answer and stats.
  * Returns the numbers the comparison card needs. Throws on failure after rewinding the provider state.
+ * `state` lets two runs start from the same conversation history without sharing it; `live` is an
+ * optional strip of counters updated as the run goes.
  */
-async function runMode(mode, question, section, { p, key, model, signal }) {
+async function runMode(mode, question, section, { p, key, model, signal, state, live }) {
   const m = MODES[mode];
   section.dataset.question = question;
   section.dataset.mode = mode;
-  run = { section, question, mode, snapshot: p.snapshot(), llmCalls: 0, tokens: 0, firstInput: 0, started: performance.now(), active: true };
-  if (mode === "direct") {
-    section.prepend(el("h3", "mode-label", m.label));
-    message("note", "Direct mode has no sandbox, policy, approvals, pinning or audit. A destructive tool runs the moment the model calls it.");
-  } else if ($("mode").value === "compare") section.prepend(el("h3", "mode-label", m.label));
-  showThinking(true);
+  const r = { section, question, mode, snapshot: p.snapshot(), llmCalls: 0, tokens: 0, firstInput: 0, started: performance.now(), active: true };
+  if (!state) run = r; // the main conversation; a forked run never becomes the one follow-ups continue from
+  const tick = () => live?.update(r);
+  r.onProgress = tick;
+  const timer = live ? setInterval(tick, 250) : undefined;
+  if (mode === "direct") message("note", "No sandbox, policy, approvals, pinning or audit on this side. A destructive tool runs the moment the model calls it.", section);
+  showThinking(true, r);
   let openCall;
   try {
     const { tools, count, approxTokens } = await toolsFor(mode, p, signal);
-    run.toolCount = count;
-    run.approxToolTokens = approxTokens;
-    const call = (name, args, sig) => callTool(name, args, sig, m.call);
-    for await (const t of p.turns({ key, model, tools, question, signal, callTool: call, system: m.system })) {
+    r.toolCount = count;
+    r.approxToolTokens = approxTokens;
+    tick();
+    const call = (name, args, sig) => callTool(name, args, sig, m.call, r);
+    for await (const t of p.turns({ key, model, tools, question, signal, callTool: call, system: m.system, state })) {
       if (t.kind === "usage") {
-        run.llmCalls++;
-        if (!run.firstInput) run.firstInput = t.input;
-        run.tokens += t.input + t.output;
+        r.llmCalls++;
+        if (!r.firstInput) r.firstInput = t.input;
+        r.tokens += t.input + t.output;
         totals.tokens += t.input + t.output;
         $("head-usage").textContent = `${fmtTokens(totals.tokens)} tokens this chat`;
-      } else if (t.kind === "call") openCall = callBlock(t.name, t.args);
+        tick();
+      } else if (t.kind === "call") openCall = callBlock(t.name, t.args, r);
       else if (t.kind === "result") {
         openCall?.done(t.text);
         openCall = undefined;
-        showThinking(true);
+        showThinking(true, r);
       } else {
-        showThinking(false);
-        message(t.kind === "note" ? "note" : "assistant", t.text);
+        showThinking(false, r);
+        message(t.kind === "note" ? "note" : "assistant", t.text, section);
       }
     }
-    runSummary();
+    runSummary(r);
+    r.ms = performance.now() - r.started;
+    live?.done(r);
     return {
       mode,
       label: m.label,
       toolCount: count,
       approxToolTokens: approxTokens,
-      firstInput: run.firstInput,
-      tokens: run.tokens,
-      llmCalls: run.llmCalls,
-      calls: run.calls ?? 0,
-      ms: performance.now() - run.started,
+      firstInput: r.firstInput,
+      tokens: r.tokens,
+      llmCalls: r.llmCalls,
+      calls: r.calls ?? 0,
+      ms: r.ms,
     };
   } catch (err) {
     openCall?.abort();
-    p.restore(run.snapshot); // never leave a half-finished tool round in the history
+    if (!state) p.restore(r.snapshot); // never leave a half-finished tool round in the history
+    live?.failed(r);
     throw err;
   } finally {
-    run.active = false;
-    showThinking(false);
+    clearInterval(timer);
+    r.active = false;
+    showThinking(false, r);
   }
 }
 
+let busy = false;
+
 async function ask(question, before, mode = $("mode").value) {
-  if (controller && !controller.signal.aborted && run?.active) return; // one run at a time
+  if (busy) return; // one question at a time
   const p = provider();
   const key = $("key").value.trim();
   if (!key) {
@@ -863,47 +888,102 @@ async function ask(question, before, mode = $("mode").value) {
   persistKey();
   emptyState.remove();
   const model = $("model").value.trim() || p.defaultModel;
-  const section = el("section", "run");
+  const section = el("section", mode === "compare" ? "run compare-run" : "run");
   if (before) before.replaceWith(section);
   else $("transcript").insertBefore(section, $("jump"));
-  run = { section, active: true };
   message("user", question, section);
   controller = new AbortController();
   const opts = { p, key, model, signal: controller.signal };
+  busy = true;
   setState("running");
   try {
-    if (mode !== "compare") {
-      await runMode(mode, question, section, opts);
-    } else {
-      // Same starting conversation for both; the chat continues from the codemcp run afterwards.
-      const before = p.snapshot();
-      const a = await runMode("codemcp", question, section, opts);
-      const after = p.snapshot();
-      p.restore(before);
-      const direct = el("section", "run");
-      section.after(direct);
-      message("user", question, direct);
-      const b = await runMode("direct", question, direct, opts);
-      p.restore(after);
-      const card = compareCard(a, b);
-      direct.after(card);
-      scrollDown();
-    }
+    if (mode !== "compare") await runMode(mode, question, section, opts);
+    else await compare(question, section, opts);
     setState("idle");
   } catch (err) {
     if (err.name === "AbortError") {
-      message("note", "Stopped. Send a new message or regenerate.");
+      message("note", "Stopped. Send a new message or regenerate.", section);
       setState("idle");
     } else {
-      message("error", err.message);
+      message("error", err.message, section);
       setState("error");
     }
   } finally {
-    run.active = false;
-    showThinking(false);
+    busy = false;
+    if (run) run.active = false;
     const active = document.activeElement;
     if (!active || active === document.body || active === $("stop") || active === $("ask")) $("question").focus();
   }
+}
+
+/**
+ * Both modes at once, side by side: each in its own column with live counters, from the same starting
+ * history. The chat continues from the codemcp side afterwards; the direct side is a fork that is thrown away.
+ */
+async function compare(question, section, opts) {
+  const { p } = opts;
+  const grid = el("div", "compare-grid");
+  const cols = {};
+  for (const mode of ["codemcp", "direct"]) {
+    const col = el("div", `col ${mode}`);
+    const live = liveStrip(mode);
+    const inner = el("section", "run");
+    inner.dataset.question = question;
+    col.append(live.node, inner);
+    grid.appendChild(col);
+    cols[mode] = { inner, live };
+  }
+  section.appendChild(grid);
+  scrollDown(true);
+  const before = p.snapshot();
+  const [a, b] = await Promise.allSettled([
+    runMode("codemcp", question, cols.codemcp.inner, { ...opts, live: cols.codemcp.live }),
+    runMode("direct", question, cols.direct.inner, { ...opts, state: p.fork(before), live: cols.direct.live }),
+  ]);
+  for (const [mode, res] of [["codemcp", a], ["direct", b]]) {
+    if (res.status === "rejected" && res.reason?.name !== "AbortError") message("error", res.reason?.message ?? String(res.reason), cols[mode].inner);
+  }
+  if (a.status === "rejected") throw a.reason;
+  if (b.status === "rejected") throw b.reason;
+  section.appendChild(compareCard(a.value, b.value));
+  scrollDown();
+}
+
+/** The counters at the top of a compare column: label, then tokens, calls and elapsed time as they change. */
+function liveStrip(mode) {
+  const node = el("div", "live");
+  const head = el("div", "head");
+  head.append(el("span", "name", MODES[mode].label), el("span", "state running", "running"));
+  const vals = {};
+  const grid = el("dl", "stats");
+  for (const [k, label] of [["tools", "tools sent"], ["tokens", "tokens"], ["calls", "tool calls"], ["llm", "model calls"], ["time", "time"]]) {
+    grid.appendChild(el("dt", "", label));
+    vals[k] = el("dd", k === "tokens" ? "hot" : "", "—");
+    grid.appendChild(vals[k]);
+  }
+  node.append(head, grid);
+  const state = head.querySelector(".state");
+  const update = (r) => {
+    vals.tools.textContent = r.toolCount === undefined ? "—" : String(r.toolCount);
+    vals.tokens.textContent = r.tokens ? fmtTokens(r.tokens) : "—";
+    vals.calls.textContent = String(r.calls ?? 0);
+    vals.llm.textContent = String(r.llmCalls);
+    vals.time.textContent = fmtMs((r.ms ?? performance.now() - r.started));
+  };
+  return {
+    node,
+    update,
+    done(r) {
+      update(r);
+      state.textContent = "done";
+      state.className = "state done";
+    },
+    failed(r) {
+      update(r);
+      state.textContent = "failed";
+      state.className = "state failed";
+    },
+  };
 }
 
 /** Side by side: what the same question cost through codemcp and with every tool passed directly. */
@@ -913,13 +993,13 @@ function compareCard(a, b) {
   card.appendChild(el("h3", "", "Same question, both ways"));
   const pct = (x, y) => (y ? `${Math.round((1 - x / y) * 100)}%` : "—");
   const rows = [
-    ["tools sent to the model", String(a.toolCount), String(b.toolCount)],
-    ["≈ tokens of tool definitions", fmtTokens(a.approxToolTokens), fmtTokens(b.approxToolTokens)],
-    ["input tokens, first request", fmtTokens(a.firstInput), fmtTokens(b.firstInput)],
-    ["total tokens", fmtTokens(a.tokens), fmtTokens(b.tokens), true],
-    ["model calls", String(a.llmCalls), String(b.llmCalls)],
-    ["tool calls", String(a.calls), String(b.calls)],
-    ["time", fmtMs(a.ms), fmtMs(b.ms)],
+    ["tools sent to the model", a.toolCount, b.toolCount, String],
+    ["≈ tokens of tool definitions", a.approxToolTokens, b.approxToolTokens, fmtTokens],
+    ["input tokens, first request", a.firstInput, b.firstInput, fmtTokens],
+    ["total tokens", a.tokens, b.tokens, fmtTokens, true],
+    ["model calls", a.llmCalls, b.llmCalls, String],
+    ["tool calls", a.calls, b.calls, String],
+    ["time", a.ms, b.ms, fmtMs],
   ];
   const table = el("table");
   const thead = el("thead");
@@ -927,9 +1007,17 @@ function compareCard(a, b) {
   hr.append(el("th", "", ""), el("th", "", "with codemcp"), el("th", "", "direct"));
   thead.appendChild(hr);
   const tbody = el("tbody");
-  for (const [label, x, y, hot] of rows) {
+  for (const [label, x, y, fmt, hot] of rows) {
     const tr = el("tr", hot ? "hot" : "");
-    tr.append(el("th", "", label), el("td", "", x), el("td", "", y));
+    const max = Math.max(x, y) || 1;
+    const cell = (v, who) => {
+      const td = el("td", who);
+      const bar = el("span", "bar");
+      bar.style.width = `${Math.round((v / max) * 100)}%`;
+      td.append(bar, el("span", "v", fmt(v)));
+      return td;
+    };
+    tr.append(el("th", "", label), cell(x, "a"), cell(y, "b"));
     tbody.appendChild(tr);
   }
   table.append(thead, tbody);
@@ -953,19 +1041,19 @@ function statGrid(stats, className = "stats") {
   return grid;
 }
 
-function runSummary() {
-  run.section.appendChild(
+function runSummary(r = run) {
+  r.section.appendChild(
     statGrid([
-      ["model calls", String(run.llmCalls)],
-      ["tool calls", String(run.calls ?? 0)],
-      ["tokens", run.tokens ? fmtTokens(run.tokens) : "—", true],
-      ["time", fmtMs(performance.now() - run.started)],
+      ["model calls", String(r.llmCalls)],
+      ["tool calls", String(r.calls ?? 0)],
+      ["tokens", r.tokens ? fmtTokens(r.tokens) : "—", true],
+      ["time", fmtMs(performance.now() - r.started)],
     ], "stats run-summary"),
   );
 }
 
 function regenerate(section) {
-  if (run?.active || !section.dataset.question) return;
+  if (busy || !section.dataset.question) return;
   // Only the latest turn can be rewound precisely; an older one restarts the conversation from scratch.
   if (section === run?.section) provider().restore(run.snapshot);
   else provider().reset();
@@ -974,7 +1062,7 @@ function regenerate(section) {
 
 $("ask-form").onsubmit = (ev) => {
   ev.preventDefault();
-  if (run?.active) return;
+  if (busy) return;
   const q = $("question").value.trim();
   if (!q) return;
   $("question").value = "";

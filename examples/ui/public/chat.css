@@ -390,3 +390,29 @@ details.tool .capped.overflowing:not(.expanded)::after {
 .compare thead th { color: var(--muted); font-weight: 500; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
 .compare tbody th { font-weight: 400; color: var(--muted); width: 50%; }
 .compare tr.hot td { color: var(--accent); font-weight: 600; }
+
+/* ----- side-by-side compare */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; margin: 8px 0; }
+.compare-grid .col { min-width: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--panel, transparent); overflow: hidden; }
+.compare-grid .col.codemcp { border-color: var(--accent); }
+.compare-grid .col > .run { padding: 0 4px 4px; }
+.compare-grid .msg, .compare-grid .group, .compare-grid .approval { margin-left: 0; margin-right: 0; max-width: none; }
+.live { padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; position: sticky; top: 0; background: var(--panel, var(--bg)); z-index: 1; }
+.live .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.live .name { font: 12px/1.4 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); }
+.live .state { font: 11px/1 var(--mono); padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.live .state.running { color: var(--accent); border-color: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+.live .state.done { color: var(--ok); border-color: var(--ok); }
+.live .state.failed { color: var(--bad); border-color: var(--bad); }
+.live .stats { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px 10px; }
+.live .stats dd { font-size: 12px; }
+@keyframes pulse { 50% { opacity: 0.45; } }
+.compare td { position: relative; }
+.compare td .bar { position: absolute; left: 0; top: 6px; bottom: 6px; border-radius: 4px; background: var(--line); opacity: 0.6; z-index: 0; }
+.compare td.a .bar { background: var(--accent); opacity: 0.22; }
+.compare td .v { position: relative; z-index: 1; padding-left: 4px; }
+.compare tbody th { width: 40%; }
+@media (max-width: 1100px) {
+  .compare-grid { grid-template-columns: 1fr; }
+  .live { position: static; }
+}
