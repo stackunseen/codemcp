@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "codemcp-core": "workspace:*",
-    "codemcp": "workspace:*",
+    "codemcp-cli": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.0"
   }
 }

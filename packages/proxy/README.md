@@ -9,12 +9,12 @@ codemcp stubs --detail full # print the TypeScript the model will see
 codemcp serve               # run the proxy over stdio
 ```
 
-Point your MCP client at `npx codemcp serve`. It advertises three tools, `search`, `describe` and `execute`, plus any `passthrough` patterns from the config.
+Point your MCP client at `npx codemcp-cli serve`. It advertises three tools, `search`, `describe` and `execute`, plus any `passthrough` patterns from the config.
 
 Programmatic use:
 
 ```ts
-import { Proxy } from "codemcp";
+import { Proxy } from "codemcp-cli";
 
 const proxy = new Proxy({ config: { servers: { shop: { command: "node", args: ["catalog-server.mjs"] } } } });
 await proxy.start();

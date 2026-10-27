@@ -8,7 +8,7 @@ import { dirname, resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { MemorySink } from "codemcp-core";
-import { ConfigLoader, Proxy } from "codemcp";
+import { ConfigLoader, Proxy } from "codemcp-cli";
 
 export const CATALOG_SERVER = fileURLToPath(new URL("../servers/catalog-server.mjs", import.meta.url));
 export const CRM_SERVER = fileURLToPath(new URL("../servers/crm-server.mjs", import.meta.url));

@@ -26,7 +26,7 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.0
         version: 1.32.2(zod@4.6.7)
-      codemcp:
+      codemcp-cli:
         specifier: workspace:*
         version: link:../packages/proxy
       codemcp-core:

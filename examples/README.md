@@ -56,5 +56,5 @@ Set `CODEMCP_CONFIG` to a config file and every example uses those servers inste
 |---|---|
 | `core` | `pnpm --filter codemcp-core test` |
 | the sandbox | `pnpm --filter codemcp-executor-quickjs test` |
-| the proxy or config import | `pnpm --filter codemcp test` |
+| the proxy or config import | `pnpm --filter codemcp-cli test` |
 | everything | `pnpm build && pnpm typecheck && pnpm test` |

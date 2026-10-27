@@ -29,8 +29,8 @@ pnpm --filter codemcp-examples ui      # chat with your own key at http://localh
 Once published:
 
 ```bash
-npx codemcp import   # find mcp.json files from Claude Code, Cursor, VS Code, Claude Desktop
-npx codemcp serve    # run the proxy over stdio; point your client here
+npx codemcp-cli import   # find mcp.json files from Claude Code, Cursor, VS Code, Claude Desktop
+npx codemcp-cli serve    # run the proxy over stdio; point your client here
 ```
 
 ## Several servers, several credentials
@@ -43,7 +43,7 @@ Every server in `codemcp.config.json` becomes a namespace: `tools.github.*`, `to
 |---|---|
 | [`codemcp-core`](packages/core) | Registry, JSON Schema to TypeScript stubs, bridge protocol, policy, budgets, pinning, audit, code normalization, search |
 | [`codemcp-executor-quickjs`](packages/executor-quickjs) | Default sandbox: QuickJS-WASM on a worker thread |
-| [`codemcp`](packages/proxy) | The `codemcp` CLI and MCP server |
+| [`codemcp-cli`](packages/proxy) | The `codemcp` CLI and MCP server |
 | [`codemcp-conformance`](packages/conformance) | Hostile-script suite every executor must pass |
 | [`spec/`](spec) | Language-neutral definition: error codes, schemas, policy cases, stub goldens, conformance cases. Ports in other languages test against it |
 
