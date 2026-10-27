@@ -2,7 +2,7 @@
 
 One MCP server in front of all the MCP servers you already use. Your model sees three tools, `search`, `describe` and `execute`. It writes a short TypeScript program against typed stubs generated from your tools' schemas, and codemcp runs that program in a sandbox that can call tools and nothing else.
 
-![codemcp demo: one prompt becomes search, describe and a single execute across the catalog; the destructive delete parks on an approval card until you decide](docs/media/codemcp-demo.gif)
+![codemcp demo: a remote MCP server is added from the sidebar; one prompt becomes search, describe and a single execute; the destructive delete parks on an approval card until you decide](docs/media/codemcp-demo.gif)
 
 > Pre-alpha. APIs will change. codemcp speaks MCP 2025-11-25 through SDK 1.x today; the move to SDK v2 and the 2026-07-28 revision is next. [docs/STATUS.md](docs/STATUS.md) lists what works and what does not yet.
 
