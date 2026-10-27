@@ -1,6 +1,6 @@
 # Credentials, identity and approvals
 
-codemcp sits between your client and your upstream servers. A credential can live in three places, and I keep them apart on purpose.
+codemcp sits between your client and your upstream servers. A credential can live in three places, and codemcp keeps them apart on purpose.
 
 ```
 client ──(stdio)──► codemcp ──► upstream A (stdio, needs an API key)

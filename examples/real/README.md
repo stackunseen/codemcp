@@ -51,7 +51,7 @@ const sizes = await Promise.all(names.slice(0, 5).map(async (n) => ({ n, info: a
 return sizes;
 ```
 
-Note what `describe` shows: most real servers return text rather than structured content, so results arrive as strings unless they parse as JSON. That is the "return types are mostly unknown" item in docs/ASSESSMENT.md.
+Note what `describe` shows: most real servers return text rather than structured content, so results arrive as strings unless they parse as JSON. That is the "return types are mostly unknown" item in [../../docs/STATUS.md](../../docs/STATUS.md).
 
 ## 4. Through a real client
 

@@ -1,11 +1,11 @@
 # Wiring codemcp into an MCP client
 
-Every client launches the same command: `codemcp serve`. Until the package is published, use the built CLI from this repo (`node <repo>/packages/proxy/dist/cli.js serve`) in place of `npx codemcp serve`.
+Every client launches the same command: `npx -y codemcp-cli serve`. From a checkout you can use the built CLI instead (`node <repo>/packages/proxy/dist/cli.js serve`).
 
 The proxy reads `codemcp.config.json` from the working directory, or `~/.codemcp/config.json`. Generate one from the servers you already have:
 
 ```bash
-codemcp import --write
+npx -y codemcp-cli import --write
 ```
 
 Then replace those servers in the client config with the single entry below, so the client sees `search`, `describe` and `execute` instead of every upstream tool.
@@ -15,7 +15,7 @@ Then replace those servers in the client config with the single entry below, so 
 ```json
 {
   "mcpServers": {
-    "codemcp": { "command": "npx", "args": ["-y", "codemcp", "serve"] }
+    "codemcp": { "command": "npx", "args": ["-y", "codemcp-cli", "serve"] }
   }
 }
 ```
@@ -25,7 +25,7 @@ Then replace those servers in the client config with the single entry below, so 
 ```json
 {
   "mcpServers": {
-    "codemcp": { "command": "npx", "args": ["-y", "codemcp", "serve", "--config", "/absolute/path/codemcp.config.json"] }
+    "codemcp": { "command": "npx", "args": ["-y", "codemcp-cli", "serve", "--config", "/absolute/path/codemcp.config.json"] }
   }
 }
 ```
@@ -35,7 +35,7 @@ Then replace those servers in the client config with the single entry below, so 
 ```json
 {
   "servers": {
-    "codemcp": { "type": "stdio", "command": "npx", "args": ["-y", "codemcp", "serve"] }
+    "codemcp": { "type": "stdio", "command": "npx", "args": ["-y", "codemcp-cli", "serve"] }
   }
 }
 ```
@@ -45,7 +45,7 @@ Then replace those servers in the client config with the single entry below, so 
 ```json
 {
   "mcpServers": {
-    "codemcp": { "command": "npx", "args": ["-y", "codemcp", "serve", "--config", "/absolute/path/codemcp.config.json"] }
+    "codemcp": { "command": "npx", "args": ["-y", "codemcp-cli", "serve", "--config", "/absolute/path/codemcp.config.json"] }
   }
 }
 ```
@@ -57,7 +57,7 @@ Claude Desktop does not start servers from a project directory, so pass `--confi
 ```toml
 [mcp_servers.codemcp]
 command = "npx"
-args = ["-y", "codemcp", "serve"]
+args = ["-y", "codemcp-cli", "serve"]
 ```
 
 Codex asks before each `execute` call unless the tool is marked read-only or you have set an approval policy.

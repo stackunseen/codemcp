@@ -1,14 +1,13 @@
 # Roadmap
 
-Dates are relative to the first commit, October 2026. The research behind the order is in [reports](reports/).
+Dates are relative to the first commit, October 2026. Order can change; issues and pull requests are welcome on any item.
 
 ## Done
 
-Monorepo with three-OS CI. Core: registry, deterministic TypeScript stubs at three detail levels, JSON-only bridge, policy with annotation inference and per-principal rules, budgets, pinning with drift detection, audit sinks, code normalization, search. QuickJS-WASM executor with memory, stack and deadline limits. A 30-case conformance suite driven from `spec/`. The proxy: stdio MCP server with `search`, `describe` and `execute`, passthrough tools, stdio and Streamable HTTP upstreams, config import from the major clients, parked approvals through elicitation, the `approve` tool or an operator channel, pluggable identity. End-to-end tests through a real upstream. A browser chat with your own key and a playground.
+Monorepo with three-OS CI. Core: registry, deterministic TypeScript stubs at three detail levels, JSON-only bridge, policy with annotation inference and per-principal rules, budgets, pinning with drift detection, audit sinks, code normalization, search. QuickJS-WASM executor with memory, stack and deadline limits. A 30-case conformance suite driven from `spec/`. The proxy: stdio MCP server with `search`, `describe` and `execute`, passthrough tools, stdio and Streamable HTTP upstreams, config import from the major clients, parked approvals through elicitation, the `approve` tool or an operator channel, pluggable identity. End-to-end tests through a real upstream. A browser chat with your own key and a playground. Packages published to npm with provenance from a one-click release workflow.
 
 ## Next
 
-- [ ] Publish `0.1.0` to npm with provenance
 - [ ] Install recipes per client with CI smoke tests
 - [ ] Measure and publish the token footprint of the three-tool surface
 - [ ] Description hygiene at ingestion; manual pinning with diffs for remote servers
@@ -20,8 +19,7 @@ Monorepo with three-OS CI. Core: registry, deterministic TypeScript stubs at thr
 - [ ] HTTP server mode with per-connection identity; upstream elicitation relay; resources and prompts
 - [ ] OAuth 2.1 for upstream HTTP servers with tokens in the OS keychain
 - [ ] Deno subprocess executor; Monty executor and Python stubs
-- [ ] Benchmark harness against naive MCP and Tool Search, numbers for three model families
-- [ ] Launch write-up
+- [ ] Benchmark harness against naive MCP and tool search, with numbers for three model families
 
 ## Months 2 to 3
 
@@ -31,9 +29,8 @@ Monorepo with three-OS CI. Core: registry, deterministic TypeScript stubs at thr
 - [ ] Docker + gVisor and self-hosted E2B / microsandbox executors
 - [ ] Registry listings
 
-## Months 4 to 6
+## Later
 
 - [ ] Per-principal upstream credentials; SSO-ready audit records; SIEM export
 - [ ] Budget caps and alerting across sessions; Helm chart
 - [ ] An MCP extension proposal for a `code_execution` capability
-- [ ] Hosted execution and enterprise governance as the sustainability path

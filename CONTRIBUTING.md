@@ -22,4 +22,4 @@ All packages under `packages/` share one version and ship together. Releases run
 
 Locally, `pnpm release:current` prints the version and `pnpm release:bump <kind>` rewrites the manifests without publishing.
 
-The first release of a new package needs an `NPM_TOKEN` repository secret (an npm granular access token with publish rights). Once a package exists on npm, configure trusted publishing for it on npmjs.com against this repository and the `release.yml` workflow, then delete the secret.
+Publishing authenticates with npm trusted publishing: each package on npmjs.com trusts this repository's `release.yml`, so no token is stored anywhere. A brand-new package cannot use that on its first publish (npm only lets you configure trusted publishing on a package that already exists), so publish it once by hand with `pnpm publish --access public` from its folder, then add the trusted publisher in the package's settings on npmjs.com.
