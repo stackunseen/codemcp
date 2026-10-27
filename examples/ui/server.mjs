@@ -27,6 +27,10 @@ class UiServer {
       ["GET", /^\/api\/approvals$/, () => this.proxy.gate.list()],
       // The human's decision: resumes the parked run and returns its final result, like the approve tool would.
       ["POST", /^\/api\/approvals$/, async (body) => ({ text: await this.proxy.resume(body.executionId, Number(body.seq), Boolean(body.allow)) })],
+      // "Without codemcp": every upstream tool as a provider would see it when passed directly, and a raw
+      // call path that bypasses the proxy's policy, approvals, pins and audit. Only for the comparison.
+      ["GET", /^\/api\/direct\/tools$/, () => this.directTools()],
+      ["POST", /^\/api\/direct\/call$/, (body) => this.directCall(String(body.name ?? ""), body.args ?? {})],
       ["GET", /^\/api\/servers$/, () => this.proxy.serverStatus()],
       ["POST", /^\/api\/servers$/, (body) => this.proxy.addServer(String(body.name ?? ""), body.config ?? {})],
       ["POST", /^\/api\/servers\/save$/, () => this.saveServers()],
@@ -45,6 +49,35 @@ class UiServer {
       pin: this.proxy.pins.check(t).status,
     }));
     return { advertisedTools, registry, servers: this.proxy.serverStatus() };
+  }
+
+  /**
+   * Every registry tool with the flat name a client would give it when all servers are attached
+   * directly (`server__tool`, limited to the characters and length providers accept).
+   */
+  directTools() {
+    const used = new Set();
+    return this.proxy.registry.list().map((t) => {
+      let name = `${t.server}__${t.name}`.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 64);
+      for (let i = 2; used.has(name); i++) name = `${name.slice(0, 60)}_${i}`;
+      used.add(name);
+      return { name, description: t.description ?? "", inputSchema: t.inputSchema, qualifiedName: t.qualifiedName };
+    });
+  }
+
+  /** Calls the upstream server directly, the way a client with no proxy would: no policy, no approval, no audit. */
+  async directCall(name, args) {
+    const tool = this.directTools().find((t) => t.name === name);
+    const desc = tool && this.proxy.registry.get(tool.qualifiedName);
+    if (!desc) return { text: `Error: unknown tool ${name}`, isError: true };
+    // `upstreams` is private to the Proxy class; this example reaches in because a raw call is exactly what it wants to measure.
+    const up = this.proxy.upstreams.get(desc.server);
+    try {
+      const value = await up.callTool(desc.name, args);
+      return { text: typeof value === "string" ? value : JSON.stringify(value, null, 2), isError: false };
+    } catch (err) {
+      return { text: `Error: ${err.message}`, isError: true };
+    }
   }
 
   /** Writes the live server map next to the config in use, or into examples/ui/ when running the demo. */

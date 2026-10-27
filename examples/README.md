@@ -24,6 +24,8 @@ pnpm --filter codemcp-examples ui
 
 Open http://localhost:8765. Pick Anthropic or OpenAI, paste your key, ask a question. The model loop runs in the browser, so the key goes from the page straight to the provider and never to the local server. Tool calls go to the local proxy. When a script stops on a call that needs approval, a card appears with Approve and Deny; the model only sees the final result after you decide.
 
+**Tool mode** in the sidebar picks how the model gets its tools. *With codemcp* is the normal three-tool surface. *Without codemcp* is the baseline: every upstream tool definition is sent to the provider on every request and calls go straight to the servers, with no sandbox, policy, approvals or audit. *Compare* runs each question both ways and shows a card with tools sent, tokens on the first request, total tokens, model calls, tool calls and time, using the providers' own usage numbers. Add a few servers first; the gap grows with the number of tools.
+
 The sidebar lets you add MCP servers by command or URL with one secret as `NAME=value`, shows each one's connection state, and can save the list to the config in use. Secrets typed there go to the local proxy only and are written as typed if you save, so swap them for `${VAR}` references before committing.
 
 To try the page without a key, add `?base=http://127.0.0.1:PORT` and provider requests go to that stand-in instead; `agents/mock-api.test.mjs` shows the shapes it has to speak.

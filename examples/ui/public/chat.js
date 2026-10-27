@@ -6,6 +6,14 @@ const SYSTEM =
   "You have tools from an MCP proxy: search, describe and execute. Prefer one execute call that loops over data to many calls. " +
   "When execute reports that a call needs approval, the person using this chat decides in the UI; you receive the final result once they do. Answer in markdown.";
 
+// "Without codemcp": the same question with every upstream tool passed to the provider directly.
+const DIRECT_SYSTEM = "You have tools from several MCP servers. Use them to answer the question. Answer in markdown.";
+
+const MODES = {
+  codemcp: { label: "with codemcp", tools: "/api/tools", call: "/api/call", system: SYSTEM },
+  direct: { label: "without codemcp (every tool passed directly)", tools: "/api/direct/tools", call: "/api/direct/call", system: DIRECT_SYSTEM },
+};
+
 const MAX_ROUNDS = 12;
 
 // For testing without a key: ?base=http://127.0.0.1:PORT sends provider requests to a stand-in API.
@@ -53,7 +61,7 @@ const PROVIDERS = {
       this.messages = s;
     },
     toolShape: (t) => ({ name: t.name, description: t.description, input_schema: t.inputSchema }),
-    async *turns({ key, model, tools, question, signal, callTool }) {
+    async *turns({ key, model, tools, question, signal, callTool, system = SYSTEM }) {
       this.messages.push({ role: "user", content: question });
       for (let i = 0; i < MAX_ROUNDS; i++) {
         const res = await fetch(providerUrl("https://api.anthropic.com", "/v1/messages"), {
@@ -65,7 +73,7 @@ const PROVIDERS = {
             "anthropic-dangerous-direct-browser-access": "true",
             "content-type": "application/json",
           },
-          body: JSON.stringify({ model, max_tokens: 8192, system: SYSTEM, tools, messages: this.messages }),
+          body: JSON.stringify({ model, max_tokens: 8192, system, tools, messages: this.messages }),
         });
         if (!res.ok) throw await providerError(res, "Anthropic");
         const reply = await res.json();
@@ -103,7 +111,7 @@ const PROVIDERS = {
       this.previous = s;
     },
     toolShape: (t) => ({ type: "function", name: t.name, description: t.description, parameters: t.inputSchema }),
-    async *turns({ key, model, tools, question, signal, callTool }) {
+    async *turns({ key, model, tools, question, signal, callTool, system = SYSTEM }) {
       let input = [{ role: "user", content: question }];
       for (let i = 0; i < MAX_ROUNDS; i++) {
         const res = await fetch(providerUrl("https://api.openai.com", "/v1/responses"), {
@@ -112,7 +120,7 @@ const PROVIDERS = {
           headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
           body: JSON.stringify({
             model,
-            instructions: SYSTEM,
+            instructions: system,
             tools,
             input,
             ...(this.previous ? { previous_response_id: this.previous } : {}),
@@ -740,8 +748,8 @@ function approvalCard({ executionId, seq, tool, args, expiresAt }) {
   });
 }
 
-async function callTool(name, args, signal) {
-  let { text } = await api("POST", "/api/call", { name, args }, signal);
+async function callTool(name, args, signal, path = "/api/call") {
+  let { text } = await api("POST", path, { name, args }, signal);
   // A script may stop more than once; each stop is one card.
   for (let m = text.match(PAUSED_RE); m; m = text.match(PAUSED_RE)) {
     const [, executionId, seq, tool, callArgs, expiresAt] = m;
@@ -774,33 +782,39 @@ function newChat() {
 }
 $("new-chat").onclick = newChat;
 
-async function ask(question, before) {
-  if (controller && !controller.signal.aborted && run?.active) return; // one run at a time
-  const p = provider();
-  const key = $("key").value.trim();
-  if (!key) {
-    $("key-status").textContent = `Paste your ${p.label} API key first.`;
-    setSidebar(true, false);
-    $("key").focus();
-    return;
-  }
-  persistKey();
-  emptyState.remove();
-  const section = el("section", "run");
+/** The tool list for one mode, in the provider's shape, plus a rough size so the two modes can be compared before any request. */
+async function toolsFor(mode, p, signal) {
+  const m = MODES[mode];
+  const raw = mode === "direct" ? await api("GET", m.tools, undefined, signal) : (await api("GET", m.tools, undefined, signal)).advertisedTools.filter((t) => t.name !== "approve");
+  const tools = raw.map(p.toolShape);
+  // About four characters per token for JSON schemas; close enough to show the gap, the real count comes from the provider.
+  return { tools, count: tools.length, approxTokens: Math.round(JSON.stringify(tools).length / 4) };
+}
+
+/**
+ * One question through one mode: a section in the transcript with its tool calls, answer and stats.
+ * Returns the numbers the comparison card needs. Throws on failure after rewinding the provider state.
+ */
+async function runMode(mode, question, section, { p, key, model, signal }) {
+  const m = MODES[mode];
   section.dataset.question = question;
-  if (before) before.replaceWith(section);
-  else $("transcript").insertBefore(section, $("jump"));
-  run = { section, question, snapshot: p.snapshot(), llmCalls: 0, tokens: 0, started: performance.now(), active: true };
-  message("user", question);
-  controller = new AbortController();
-  setState("running");
+  section.dataset.mode = mode;
+  run = { section, question, mode, snapshot: p.snapshot(), llmCalls: 0, tokens: 0, firstInput: 0, started: performance.now(), active: true };
+  if (mode === "direct") {
+    section.prepend(el("h3", "mode-label", m.label));
+    message("note", "Direct mode has no sandbox, policy, approvals, pinning or audit. A destructive tool runs the moment the model calls it.");
+  } else if ($("mode").value === "compare") section.prepend(el("h3", "mode-label", m.label));
   showThinking(true);
   let openCall;
   try {
-    const tools = (await api("GET", "/api/tools", undefined, controller.signal)).advertisedTools.filter((t) => t.name !== "approve").map(p.toolShape);
-    for await (const t of p.turns({ key, model: $("model").value.trim() || p.defaultModel, tools, question, signal: controller.signal, callTool })) {
+    const { tools, count, approxTokens } = await toolsFor(mode, p, signal);
+    run.toolCount = count;
+    run.approxToolTokens = approxTokens;
+    const call = (name, args, sig) => callTool(name, args, sig, m.call);
+    for await (const t of p.turns({ key, model, tools, question, signal, callTool: call, system: m.system })) {
       if (t.kind === "usage") {
         run.llmCalls++;
+        if (!run.firstInput) run.firstInput = t.input;
         run.tokens += t.input + t.output;
         totals.tokens += t.input + t.output;
         $("head-usage").textContent = `${fmtTokens(totals.tokens)} tokens this chat`;
@@ -815,10 +829,68 @@ async function ask(question, before) {
       }
     }
     runSummary();
-    setState("idle");
+    return {
+      mode,
+      label: m.label,
+      toolCount: count,
+      approxToolTokens: approxTokens,
+      firstInput: run.firstInput,
+      tokens: run.tokens,
+      llmCalls: run.llmCalls,
+      calls: run.calls ?? 0,
+      ms: performance.now() - run.started,
+    };
   } catch (err) {
     openCall?.abort();
     p.restore(run.snapshot); // never leave a half-finished tool round in the history
+    throw err;
+  } finally {
+    run.active = false;
+    showThinking(false);
+  }
+}
+
+async function ask(question, before, mode = $("mode").value) {
+  if (controller && !controller.signal.aborted && run?.active) return; // one run at a time
+  const p = provider();
+  const key = $("key").value.trim();
+  if (!key) {
+    $("key-status").textContent = `Paste your ${p.label} API key first.`;
+    setSidebar(true, false);
+    $("key").focus();
+    return;
+  }
+  persistKey();
+  emptyState.remove();
+  const model = $("model").value.trim() || p.defaultModel;
+  const section = el("section", "run");
+  if (before) before.replaceWith(section);
+  else $("transcript").insertBefore(section, $("jump"));
+  run = { section, active: true };
+  message("user", question, section);
+  controller = new AbortController();
+  const opts = { p, key, model, signal: controller.signal };
+  setState("running");
+  try {
+    if (mode !== "compare") {
+      await runMode(mode, question, section, opts);
+    } else {
+      // Same starting conversation for both; the chat continues from the codemcp run afterwards.
+      const before = p.snapshot();
+      const a = await runMode("codemcp", question, section, opts);
+      const after = p.snapshot();
+      p.restore(before);
+      const direct = el("section", "run");
+      section.after(direct);
+      message("user", question, direct);
+      const b = await runMode("direct", question, direct, opts);
+      p.restore(after);
+      const card = compareCard(a, b);
+      direct.after(card);
+      scrollDown();
+    }
+    setState("idle");
+  } catch (err) {
     if (err.name === "AbortError") {
       message("note", "Stopped. Send a new message or regenerate.");
       setState("idle");
@@ -832,6 +904,43 @@ async function ask(question, before) {
     const active = document.activeElement;
     if (!active || active === document.body || active === $("stop") || active === $("ask")) $("question").focus();
   }
+}
+
+/** Side by side: what the same question cost through codemcp and with every tool passed directly. */
+function compareCard(a, b) {
+  const card = el("section", "compare");
+  card.setAttribute("aria-label", "Comparison of both runs");
+  card.appendChild(el("h3", "", "Same question, both ways"));
+  const pct = (x, y) => (y ? `${Math.round((1 - x / y) * 100)}%` : "—");
+  const rows = [
+    ["tools sent to the model", String(a.toolCount), String(b.toolCount)],
+    ["≈ tokens of tool definitions", fmtTokens(a.approxToolTokens), fmtTokens(b.approxToolTokens)],
+    ["input tokens, first request", fmtTokens(a.firstInput), fmtTokens(b.firstInput)],
+    ["total tokens", fmtTokens(a.tokens), fmtTokens(b.tokens), true],
+    ["model calls", String(a.llmCalls), String(b.llmCalls)],
+    ["tool calls", String(a.calls), String(b.calls)],
+    ["time", fmtMs(a.ms), fmtMs(b.ms)],
+  ];
+  const table = el("table");
+  const thead = el("thead");
+  const hr = el("tr");
+  hr.append(el("th", "", ""), el("th", "", "with codemcp"), el("th", "", "direct"));
+  thead.appendChild(hr);
+  const tbody = el("tbody");
+  for (const [label, x, y, hot] of rows) {
+    const tr = el("tr", hot ? "hot" : "");
+    tr.append(el("th", "", label), el("td", "", x), el("td", "", y));
+    tbody.appendChild(tr);
+  }
+  table.append(thead, tbody);
+  card.appendChild(table);
+  const saved = a.tokens && b.tokens ? pct(a.tokens, b.tokens) : "—";
+  const firstSaved = a.firstInput && b.firstInput ? pct(a.firstInput, b.firstInput) : "—";
+  card.appendChild(
+    el("p", "hint", `codemcp used ${saved} fewer tokens overall and ${firstSaved} fewer on the first request, where the tool definitions are paid for. Counts are the providers' own usage figures; the tool-definition size is an estimate.`),
+  );
+  announce("Comparison ready");
+  return card;
 }
 
 /** A small stat grid after an answer: label above, value below, the cost figure picked out. */
@@ -860,7 +969,7 @@ function regenerate(section) {
   // Only the latest turn can be rewound precisely; an older one restarts the conversation from scratch.
   if (section === run?.section) provider().restore(run.snapshot);
   else provider().reset();
-  void ask(section.dataset.question, section);
+  void ask(section.dataset.question, section, section.dataset.mode ?? $("mode").value);
 }
 
 $("ask-form").onsubmit = (ev) => {

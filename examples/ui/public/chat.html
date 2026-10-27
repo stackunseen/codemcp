@@ -42,6 +42,14 @@
     </div>
     <p class="hint" id="key-status" role="status"></p>
     <p class="hint">Requests go straight from this browser to the provider; the key is never sent to the codemcp proxy. Tool calls run through the proxy on this machine.</p>
+    <label>Tool mode
+      <select id="mode">
+        <option value="codemcp">with codemcp (search, describe, execute)</option>
+        <option value="direct">without codemcp (every tool passed directly)</option>
+        <option value="compare">compare: run each question both ways</option>
+      </select>
+    </label>
+    <p class="hint">Direct mode is the baseline: every upstream tool definition goes to the provider on every request, and calls skip the sandbox, policy, approvals and audit. Compare runs the question through both and shows the token difference.</p>
   </section>
 
   <section>
