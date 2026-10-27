@@ -7,3 +7,4 @@ coverage/
 .DS_Store
 # raw research notes stay local; the synthesized report in docs/reports is the tracked artifact
 docs/research_notes/
+examples/benchmark/results/.memory.json

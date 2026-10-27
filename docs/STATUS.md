@@ -16,6 +16,7 @@ codemcp is pre-alpha. This page says what you can rely on today and what you can
 - **Audit.** JSONL per execution and per call, with decision, bytes, duration and trace context, to a file, stderr, a webhook or your own callback.
 - **Identity.** A pluggable provider (`local`, `static`, `trusted-header`) resolves a principal that policy, approvals and audit all key on.
 - **Portable executor contract** with a 30-case conformance suite driven from `spec/`.
+- **Measured.** `examples/benchmark/` runs read-only tasks against seven public MCP servers (71 tools) with codemcp and with every tool passed directly, checks each answer against regexes, and publishes the token, pass-rate and timing tables in [BENCHMARK.md](BENCHMARK.md) through the `benchmark` workflow. The three-tool surface costs about 490 tokens of definitions against about 11,700 for those servers attached directly.
 - **Published.** `codemcp-cli`, `codemcp-core`, `codemcp-executor-quickjs` and `codemcp-conformance` ship together on npm with provenance.
 
 Isolation is weaker than a V8 isolate in its own process and stronger than in-process execution. [THREAT_MODEL.md](THREAT_MODEL.md) spells out what each tier does and does not cover.

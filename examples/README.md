@@ -38,6 +38,18 @@ http://localhost:8765/playground.html shows what the model sees: the registry wi
 
 `agents/openai-responses.mjs` and `agents/anthropic-messages.mjs` run a complete tool loop against the Responses and Messages APIs with codemcp as the only tool provider. See [agents/README.md](agents/README.md).
 
+## Benchmark
+
+```bash
+pnpm --filter codemcp-examples benchmark -- --set no-key --repeats 1
+```
+
+Measures what codemcp saves against real MCP servers. `benchmark/servers.json` lists two server sets: `no-key` (the filesystem, memory, everything and sequential-thinking reference servers, Playwright, DeepWiki and Microsoft Learn; nothing to configure) and `with-keys`, which adds GitHub and Brave Search and is skipped unless the `${VAR}` references it names are set. `benchmark/tasks.json` holds read-only questions, each with the servers it needs and regexes the final answer must match.
+
+Every task runs both ways for each model and repeat: with codemcp's `search`, `describe` and `execute`, and with every upstream tool definition passed to the provider directly as `server__tool` with calls going straight to the servers. The record for each run has input, output and first-request input tokens from the provider's own `usage`, model calls, tool calls, wall time, pass or fail, and any error. Models default to `claude-sonnet-5-5`, `claude-haiku-5-5` and `gpt-5.6`; set `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` for the ones you want, and a provider without a key is skipped. Flags: `--set`, `--repeats`, `--models`, `--modes`, `--tasks`, `--concurrency`, `--max-rounds`, `--out`, `--docs`, `--no-report`.
+
+Results go to `benchmark/results/<date>.json` and `latest.json`, and `benchmark/report.mjs` turns a results file into [../docs/BENCHMARK.md](../docs/BENCHMARK.md) plus the badge endpoint `docs/benchmark.json`. The published page comes from the `benchmark` workflow in the Actions tab, which runs the same command and opens a pull request with the new files. `benchmark/benchmark.test.mjs` drives the whole pipeline against a local stand-in for both provider APIs and the demo servers, so the shapes are checked without a key.
+
 ## Through a real MCP client
 
 ```bash
