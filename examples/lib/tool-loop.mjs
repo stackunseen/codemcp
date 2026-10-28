@@ -6,13 +6,13 @@ export const PROVIDERS = {
   anthropic: {
     keyVar: "ANTHROPIC_API_KEY",
     baseUrlVar: "ANTHROPIC_BASE_URL",
-    baseUrl: "https://api.anthropic.com/v1",
+    baseUrl: "https://api.anthropic.com",
     toolShape: (t) => ({ name: t.name, description: t.description, input_schema: t.inputSchema }),
   },
   openai: {
     keyVar: "OPENAI_API_KEY",
     baseUrlVar: "OPENAI_BASE_URL",
-    baseUrl: "https://api.openai.com/v1",
+    baseUrl: "https://api.openai.com",
     toolShape: (t) => ({ type: "function", name: t.name, description: t.description, parameters: t.inputSchema }),
   },
 };
@@ -61,7 +61,9 @@ async function post(url, headers, body, { retries, timeoutMs }) {
 export async function runToolLoop({ provider, apiKey, baseUrl, model, system, tools, question, callTool, maxRounds = 12, retries = 2, timeoutMs = 180_000, onCall, onResult }) {
   const p = PROVIDERS[provider];
   if (!p) throw new Error(`Unknown provider "${provider}"`);
-  const base = baseUrl ?? process.env[p.baseUrlVar] ?? p.baseUrl;
+  // Like the official SDKs, the base URL is the origin; ANTHROPIC_BASE_URL and OPENAI_BASE_URL
+  // are usually set without /v1, and a value that already ends in /v1 is accepted too.
+  const base = (baseUrl ?? process.env[p.baseUrlVar] ?? p.baseUrl).replace(/\/+$/, "").replace(/\/v1$/, "");
   const shaped = tools.map(p.toolShape);
   const usage = { input: 0, output: 0, firstInput: 0, modelCalls: 0 };
   const calls = [];
@@ -91,7 +93,7 @@ export async function runToolLoop({ provider, apiKey, baseUrl, model, system, to
         break;
       }
       const reply = await post(
-        `${base}/messages`,
+        `${base}/v1/messages`,
         { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
         { model, max_tokens: 8192, system, tools: shaped, messages },
         { retries, timeoutMs },
@@ -102,6 +104,9 @@ export async function runToolLoop({ provider, apiKey, baseUrl, model, system, to
       const uses = reply.content.filter((b) => b.type === "tool_use");
       if (reply.stop_reason !== "tool_use" || uses.length === 0) {
         if (reply.stop_reason === "max_tokens") stopped = "max_tokens";
+        // The API can decline a request outright (stop_reason "refusal", with the category in
+        // stop_details); the reply then has no content, which is not the same as an empty answer.
+        if (reply.stop_reason === "refusal") stopped = `refusal:${reply.stop_details?.category ?? "unknown"}`;
         break;
       }
       const results = [];
@@ -117,7 +122,7 @@ export async function runToolLoop({ provider, apiKey, baseUrl, model, system, to
         break;
       }
       const reply = await post(
-        `${base}/responses`,
+        `${base}/v1/responses`,
         { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
         { model, instructions: system, tools: shaped, input, ...(previous ? { previous_response_id: previous } : {}) },
         { retries, timeoutMs },

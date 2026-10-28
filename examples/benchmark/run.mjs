@@ -91,6 +91,8 @@ async function runOne({ set, harness, task, model, provider, mode, repeat, tools
       answer: answer.slice(0, 2000),
       calls: r.calls.map((c) => c.name),
     });
+    // A provider refusal is not a wrong answer; it goes in the errors table and out of the token pairs.
+    if (r.stopped?.startsWith("refusal")) record.error = `provider refused the request (${r.stopped.slice("refusal:".length)})`;
   } catch (err) {
     record.error = String(err.message ?? err).slice(0, 500);
   }

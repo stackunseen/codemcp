@@ -8,3 +8,8 @@ coverage/
 # raw research notes stay local; the synthesized report in docs/reports is the tracked artifact
 docs/research_notes/
 examples/benchmark/results/.memory.json
+
+# local secrets for the benchmark; never committed
+.env
+.env.*
+promo-posts.md

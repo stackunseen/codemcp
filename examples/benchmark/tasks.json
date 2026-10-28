@@ -51,7 +51,7 @@
     },
     {
       "id": "thinking-prime",
-      "question": "Use the sequential thinking tool for three thoughts to work out whether 221 is prime. Then answer: is it prime, and if not, what are its factors?",
+      "question": "Use the sequential thinking server to check whether 221 is prime, in three steps. Answer with whether it is prime and, if not, its factors.",
       "servers": ["thinking"],
       "expect": ["\\b13\\b", "\\b17\\b"]
     },

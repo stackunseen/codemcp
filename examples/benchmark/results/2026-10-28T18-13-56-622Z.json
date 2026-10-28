@@ -1,0 +1,2548 @@
+{
+  "version": 1,
+  "date": "2026-10-28T18:13:56.622Z",
+  "command": "node benchmark/run.mjs --set no-key --repeats 1 --models claude-opus-5-5,claude-sonnet-5-5,claude-haiku-5-5,claude-fable-5-1",
+  "node": "v24.13.0",
+  "platform": "win32",
+  "repeats": 1,
+  "modes": [
+    "codemcp",
+    "direct"
+  ],
+  "maxRounds": 12,
+  "models": [
+    {
+      "id": "claude-opus-5-5",
+      "provider": "anthropic"
+    },
+    {
+      "id": "claude-sonnet-5-5",
+      "provider": "anthropic"
+    },
+    {
+      "id": "claude-haiku-5-5",
+      "provider": "anthropic"
+    },
+    {
+      "id": "claude-fable-5-1",
+      "provider": "anthropic"
+    }
+  ],
+  "skippedModels": [],
+  "sets": [
+    {
+      "name": "no-key",
+      "description": "Public servers that need no credentials.",
+      "servers": [
+        {
+          "name": "fs",
+          "state": "connected",
+          "tools": 14,
+          "definitionTokens": 2034,
+          "error": null
+        },
+        {
+          "name": "memory",
+          "state": "connected",
+          "tools": 9,
+          "definitionTokens": 1137,
+          "error": null
+        },
+        {
+          "name": "everything",
+          "state": "connected",
+          "tools": 16,
+          "definitionTokens": 1834,
+          "error": null
+        },
+        {
+          "name": "thinking",
+          "state": "connected",
+          "tools": 1,
+          "definitionTokens": 1013,
+          "error": null
+        },
+        {
+          "name": "playwright",
+          "state": "connected",
+          "tools": 25,
+          "definitionTokens": 4481,
+          "error": null
+        },
+        {
+          "name": "deepwiki",
+          "state": "connected",
+          "tools": 3,
+          "definitionTokens": 273,
+          "error": null
+        },
+        {
+          "name": "mslearn",
+          "state": "connected",
+          "tools": 3,
+          "definitionTokens": 960,
+          "error": null
+        }
+      ],
+      "totalTools": 71,
+      "totalDefinitionTokens": 11732,
+      "proxyTools": 3,
+      "proxyDefinitionTokens": 491
+    }
+  ],
+  "skippedSets": [],
+  "tasks": [
+    {
+      "id": "fs-list-packages",
+      "question": "The filesystem server is rooted at a source repository. List the directories directly under its `packages` folder and state how many there are.",
+      "servers": [
+        "fs"
+      ],
+      "expect": [
+        "\\b4\\b",
+        "executor-quickjs"
+      ]
+    },
+    {
+      "id": "fs-read-license",
+      "question": "Which open-source license does the repository on the filesystem server use? Read its top-level LICENSE file and answer with the license name.",
+      "servers": [
+        "fs"
+      ],
+      "expect": [
+        "Apache"
+      ]
+    },
+    {
+      "id": "fs-search-then-read",
+      "question": "Search the filesystem server for files named `codemcp.config.json`, then read the one under `examples/basic` and tell me the names of the servers it configures.",
+      "servers": [
+        "fs"
+      ],
+      "expect": [
+        "catalog",
+        "crm"
+      ]
+    },
+    {
+      "id": "fs-package-name",
+      "question": "Read `packages/proxy/package.json` from the filesystem server and report the package's name.",
+      "servers": [
+        "fs"
+      ],
+      "expect": [
+        "codemcp-cli"
+      ]
+    },
+    {
+      "id": "everything-sum",
+      "question": "Use the everything server to add 17 and 25 and report the result.",
+      "servers": [
+        "everything"
+      ],
+      "expect": [
+        "\\b42\\b"
+      ]
+    },
+    {
+      "id": "everything-echo",
+      "question": "Use the everything server's echo tool to echo the phrase `benchmark ping` and tell me exactly what came back.",
+      "servers": [
+        "everything"
+      ],
+      "expect": [
+        "benchmark ping"
+      ]
+    },
+    {
+      "id": "count-everything-tools",
+      "question": "List the names of every tool the everything server offers and say how many there are.",
+      "servers": [
+        "everything"
+      ],
+      "expect": [
+        "echo",
+        "\\b1[0-9]\\b"
+      ]
+    },
+    {
+      "id": "memory-search",
+      "question": "Search the memory server's knowledge graph for entities about `codemcp` and report how many you found.",
+      "servers": [
+        "memory"
+      ],
+      "expect": [
+        "\\b0\\b|\\bzero\\b|\\bno\\b|\\bnone\\b|\\bempty\\b|\\bnothing\\b|\\bdidn.t find\\b|\\bnot find\\b"
+      ]
+    },
+    {
+      "id": "thinking-prime",
+      "question": "Use the sequential thinking server to check whether 221 is prime, in three steps. Answer with whether it is prime and, if not, its factors.",
+      "servers": [
+        "thinking"
+      ],
+      "expect": [
+        "\\b13\\b",
+        "\\b17\\b"
+      ]
+    },
+    {
+      "id": "mslearn-az-login",
+      "question": "Search Microsoft Learn for the Azure CLI command that signs you in to Azure and tell me the exact command.",
+      "servers": [
+        "mslearn"
+      ],
+      "expect": [
+        "az login"
+      ]
+    },
+    {
+      "id": "deepwiki-transports",
+      "question": "Ask DeepWiki which transports the `modelcontextprotocol/typescript-sdk` repository supports and list them.",
+      "servers": [
+        "deepwiki"
+      ],
+      "expect": [
+        "stdio",
+        "http|streamable|sse"
+      ]
+    },
+    {
+      "id": "join-fs-everything",
+      "question": "Count the directories directly under the `packages` folder of the filesystem server, then use the everything server to add that count to 100. Report both the count and the sum.",
+      "servers": [
+        "fs",
+        "everything"
+      ],
+      "expect": [
+        "\\b4\\b",
+        "\\b104\\b"
+      ]
+    },
+    {
+      "id": "join-memory-everything",
+      "question": "Read the memory server's whole knowledge graph and count its entities. Then use the everything server to add 1 to that count. Report both numbers.",
+      "servers": [
+        "memory",
+        "everything"
+      ],
+      "expect": [
+        "\\b0\\b|\\bzero\\b|\\bno entities\\b|\\bempty\\b",
+        "\\b1\\b"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "set": "no-key",
+      "task": "count-everything-tools",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 2972,
+      "outputTokens": 244,
+      "firstInputTokens": 1125,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 3531,
+      "stopped": "end",
+      "answer": "The everything server offers **16 tools**:\n\n1. echo\n2. get_annotated_message\n3. get_env\n4. get_header_params\n5. get_resource_links\n6. get_resource_reference\n7. get_structured_content\n8. get_sum\n9. get_tiny_image\n10. gzip_file_as_resource\n11. toggle_simulated_logging\n12. toggle_subscriber_updates\n13. trigger_list_changed\n14. trigger_log_messages\n15. trigger_long_running_operation\n16. trigger_resource_update",
+      "calls": [
+        "describe"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "count-everything-tools",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 17810,
+      "outputTokens": 219,
+      "firstInputTokens": 17810,
+      "modelCalls": 1,
+      "toolCalls": 0,
+      "wallMs": 2709,
+      "stopped": "end",
+      "answer": "The everything server exposes 16 tools:\n\n1. `echo`\n2. `get-annotated-message`\n3. `get-env`\n4. `get-header-params`\n5. `get-resource-links`\n6. `get-resource-reference`\n7. `get-structured-content`\n8. `get-sum`\n9. `get-tiny-image`\n10. `gzip-file-as-resource`\n11. `toggle-simulated-logging`\n12. `toggle-subscriber-updates`\n13. `trigger-list-changed`\n14. `trigger-log-messages`\n15. `trigger-long-running-operation`\n16. `trigger-resource-update`\n\n**Total: 16 tools.**",
+      "calls": []
+    },
+    {
+      "set": "no-key",
+      "task": "count-everything-tools",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 2972,
+      "outputTokens": 413,
+      "firstInputTokens": 1125,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2808,
+      "stopped": "end",
+      "answer": "The everything server offers **16 tools**:\n\n1. echo\n2. get_annotated_message\n3. get_env\n4. get_header_params\n5. get_resource_links\n6. get_resource_reference\n7. get_structured_content\n8. get_sum\n9. get_tiny_image\n10. gzip_file_as_resource\n11. toggle_simulated_logging\n12. toggle_subscriber_updates\n13. trigger_list_changed\n14. trigger_log_messages\n15. trigger_long_running_operation\n16. trigger_resource_update",
+      "calls": [
+        "describe"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "count-everything-tools",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 17810,
+      "outputTokens": 520,
+      "firstInputTokens": 17810,
+      "modelCalls": 1,
+      "toolCalls": 0,
+      "wallMs": 2428,
+      "stopped": "end",
+      "answer": "The everything server offers **16 tools**:\n\n1. echo\n2. get-annotated-message\n3. get-env\n4. get-header-params\n5. get-resource-links\n6. get-resource-reference\n7. get-structured-content\n8. get-sum\n9. get-tiny-image\n10. gzip-file-as-resource\n11. toggle-simulated-logging\n12. toggle-subscriber-updates\n13. trigger-list-changed\n14. trigger-log-messages\n15. trigger-long-running-operation\n16. trigger-resource-update\n\nThese are taken from the tool definitions available to me, not from a live query of the server. The names above omit the `everything__` prefix.",
+      "calls": []
+    },
+    {
+      "set": "no-key",
+      "task": "count-everything-tools",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 2972,
+      "outputTokens": 292,
+      "firstInputTokens": 1125,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 4039,
+      "stopped": "end",
+      "answer": "The everything server offers **16 tools**:\n\n1. echo\n2. get_annotated_message\n3. get_env\n4. get_header_params\n5. get_resource_links\n6. get_resource_reference\n7. get_structured_content\n8. get_sum\n9. get_tiny_image\n10. gzip_file_as_resource\n11. toggle_simulated_logging\n12. toggle_subscriber_updates\n13. trigger_list_changed\n14. trigger_log_messages\n15. trigger_long_running_operation\n16. trigger_resource_update\n\nTwo of these, toggle_simulated_logging and toggle_subscriber_updates, are marked as deprecated and only work with clients from 2025.",
+      "calls": [
+        "describe"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "count-everything-tools",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 17810,
+      "outputTokens": 452,
+      "firstInputTokens": 17810,
+      "modelCalls": 1,
+      "toolCalls": 0,
+      "wallMs": 5082,
+      "stopped": "end",
+      "answer": "The everything server gives me **16 tools**:\n\n1. echo\n2. get-annotated-message\n3. get-env\n4. get-header-params\n5. get-resource-links\n6. get-resource-reference\n7. get-structured-content\n8. get-sum\n9. get-tiny-image\n10. gzip-file-as-resource\n11. toggle-simulated-logging\n12. toggle-subscriber-updates\n13. trigger-list-changed\n14. trigger-log-messages\n15. trigger-long-running-operation\n16. trigger-resource-update\n\nI counted these from the tools available to me in this session; I didn't run any of them. Some of their descriptions say they depend on the protocol version, so a client using a different protocol version might see a slightly different list.",
+      "calls": []
+    },
+    {
+      "set": "no-key",
+      "task": "count-everything-tools",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 2972,
+      "outputTokens": 244,
+      "firstInputTokens": 1125,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2788,
+      "stopped": "end",
+      "answer": "The everything server offers **16 tools**:\n\n1. echo\n2. get_annotated_message\n3. get_env\n4. get_header_params\n5. get_resource_links\n6. get_resource_reference\n7. get_structured_content\n8. get_sum\n9. get_tiny_image\n10. gzip_file_as_resource\n11. toggle_simulated_logging\n12. toggle_subscriber_updates\n13. trigger_list_changed\n14. trigger_log_messages\n15. trigger_long_running_operation\n16. trigger_resource_update",
+      "calls": [
+        "describe"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "count-everything-tools",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 17810,
+      "outputTokens": 233,
+      "firstInputTokens": 17810,
+      "modelCalls": 1,
+      "toolCalls": 0,
+      "wallMs": 3441,
+      "stopped": "end",
+      "answer": "The everything server offers 18 tools. I counted them from the tool definitions available to me, without calling any of them:\n\n1. echo\n2. get-annotated-message\n3. get-env\n4. get-header-params\n5. get-resource-links\n6. get-resource-reference\n7. get-structured-content\n8. get-sum\n9. get-tiny-image\n10. gzip-file-as-resource\n11. toggle-simulated-logging\n12. toggle-subscriber-updates\n13. trigger-list-changed\n14. trigger-log-messages\n15. trigger-long-running-operation\n16. trigger-resource-update\n\nThat list has 16 names, not 18. I miscounted in my first sentence. The correct total is **16 tools**.",
+      "calls": []
+    },
+    {
+      "set": "no-key",
+      "task": "deepwiki-transports",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5282,
+      "outputTokens": 625,
+      "firstInputTokens": 1145,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 21325,
+      "stopped": "end",
+      "answer": "According to DeepWiki, `modelcontextprotocol/typescript-sdk` supports four transports:\n\n1. **Streamable HTTP** (recommended for remote servers) — client: `StreamableHTTPClientTransport`; server: `WebStandardStreamableHTTPServerTransport` (Cloudflare Workers/Deno/Bun) and `NodeStreamableHTTPServerTransport` (Node.js wrapper). Supports stateful sessions, resumability, and server-initiated messages.\n2. **SSE (Server-Sent Events)** — legacy HTTP+SSE, deprecated. Client: `SSEClientTransport`; the server-side `SSEServerTransport` has been removed from the main package (a frozen v1 copy lives in `@modelcontextprotocol/server-legacy/sse`).\n3. **Stdio** — for local child-process communication, Node.js only. Client: `StdioClientTransport`; server: `StdioServerTransport`.\n4. **In-Memory** — `InMemoryTransport` (via `InMemoryTransport.createLinkedPair()`), for same-process testing/development.\n\nAll implement the common `Transport` interface (`start()`, `send()`, `close()`, plus `onmessage`/`onerror`/`onclose`), so custom transports can also be written.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "deepwiki-transports",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 37058,
+      "outputTokens": 783,
+      "firstInputTokens": 17830,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 22730,
+      "stopped": "end",
+      "answer": "According to DeepWiki, the `modelcontextprotocol/typescript-sdk` supports these transports:\n\n**Client transports**\n1. `StreamableHTTPClientTransport` – recommended for remote servers (stateful sessions, resumability, server-initiated messages); `packages/client/src/client/streamableHttp.ts`\n2. `SSEClientTransport` – legacy HTTP+SSE, deprecated/kept for backward compatibility; `packages/client/src/client/sse.ts`\n3. `StdioClientTransport` – local process communication (spawns server as child process), Node.js only; `packages/client/src/client/stdio.ts`\n4. `InMemoryTransport` – in-process communication for testing/development, via `InMemoryTransport.createLinkedPair()`\n\n**Server transports**\n1. `WebStandardStreamableHTTPServerTransport` – core Streamable HTTP transport using Web Standard APIs (`Request`/`Response`/`ReadableStream`); runs on Node 18+, Cloudflare Workers, Deno, Bun; `packages/server/src/server/streamableHttp.ts`\n2. `NodeStreamableHTTPServerTransport` – wrapper for Node.js `IncomingMessage`/`ServerResponse`; `packages/middleware/node/src/streamableHttp.ts`\n3. `StdioServerTransport` – reads stdin / writes stdout, Node.js only; `packages/server/src/server/stdio.ts`\n4. `InMemoryTransport` – in-process, primarily for testing\n\nAll implement the common `Transport` interface (`start()`, `send()`, `close()`, plus `onmessage`/`onerror`/`onclose`) defined in `packages/core-internal/src/shared/transport.ts`.\n\nNotes: `SSEServerTransport` has been removed (migrate to Streamable HTTP), and `WebSocketClientTransport` was removed since WebSocket is not a spec transport.",
+      "calls": [
+        "deepwiki__ask_wiki_question"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "deepwiki-transports",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5187,
+      "outputTokens": 581,
+      "firstInputTokens": 1145,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 20631,
+      "stopped": "end",
+      "answer": "DeepWiki says the `modelcontextprotocol/typescript-sdk` repository supports these transports:\n\n1. **Streamable HTTP** (recommended for remote servers). Client: `StreamableHTTPClientTransport`. Server: `WebStandardStreamableHTTPServerTransport`, plus `NodeStreamableHTTPServerTransport` as a Node.js compatibility wrapper.\n2. **SSE (Server-Sent Events)**: a legacy, deprecated HTTP+SSE transport, with `SSEClientTransport` on the client side.\n3. **Stdio**: local process communication where the client spawns the server as a child process. Client: `StdioClientTransport`. Server: `StdioServerTransport`.\n4. **In-Memory**: for testing and development within a single process, created in linked pairs with `InMemoryTransport.createLinkedPair()`.\n\nDeepWiki also notes that `WebSocketClientTransport` and `SSEServerTransport` were removed in v2. `SSEServerTransport` remains available from `@modelcontextprotocol/server-legacy/sse` for temporary backward compatibility.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "deepwiki-transports",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 36661,
+      "outputTokens": 458,
+      "firstInputTokens": 17830,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 14068,
+      "stopped": "end",
+      "answer": "DeepWiki says the `modelcontextprotocol/typescript-sdk` repository supports these four transports:\n\n1. **Streamable HTTP**: the recommended transport for remote servers. Client side is `StreamableHTTPClientTransport`; server side is `WebStandardStreamableHTTPServerTransport` and `NodeStreamableHTTPServerTransport`.\n2. **SSE (Server-Sent Events)**: a legacy transport kept for backward compatibility and deprecated in favor of Streamable HTTP. Client side is `SSEClientTransport`.\n3. **Stdio**: for local child-process communication, Node.js only. Client side is `StdioClientTransport`; server side is `StdioServerTransport`.\n4. **In-Memory**: for linking a client and server in the same process, mainly for testing. Created with `InMemoryTransport.createLinkedPair()`.\n\nDeepWiki also notes that `WebSocketClientTransport` and `SSEServerTransport` were removed in version 2 of the SDK.",
+      "calls": [
+        "deepwiki__ask_wiki_question"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "deepwiki-transports",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5088,
+      "outputTokens": 671,
+      "firstInputTokens": 1145,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 21619,
+      "stopped": "end",
+      "answer": "According to DeepWiki, `modelcontextprotocol/typescript-sdk` supports four transports:\n\n1. **Streamable HTTP**: the recommended transport for connecting to remote servers. It supports stateful sessions, resuming, and messages that the server starts.\n   - `StreamableHTTPClientTransport` is the client side.\n   - `WebStandardStreamableHTTPServerTransport` is the server side. It runs on Node.js 18+, Cloudflare Workers, Deno and Bun.\n   - `NodeStreamableHTTPServerTransport` wraps the server transport so it works with Node HTTP servers such as Express.\n2. **Stdio**: for local communication, where the client starts the server as a child process and they talk over stdin/stdout.\n   - `StdioClientTransport` is the client side.\n   - `StdioServerTransport` is the server side.\n3. **SSE (Server-Sent Events)**: an older HTTP+SSE transport kept for backward compatibility. Users are encouraged to move to Streamable HTTP.\n   - `SSEClientTransport` is the client side.\n4. **In-Memory**: for testing and development, where client and server run in the same process.\n   - `InMemoryTransport` creates a linked client and server pair.\n\nEvery transport follows a shared `Transport` interface (`start()`, `send()`, `close()`, plus `onmessage`, `onerror` and `onclose` callbacks), so you can also write your own. `WebSocketClientTransport` and `SSEServerTransport` were removed in v2.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "deepwiki-transports",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 36620,
+      "outputTokens": 555,
+      "firstInputTokens": 17830,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 18276,
+      "stopped": "end",
+      "answer": "DeepWiki says `modelcontextprotocol/typescript-sdk` supports four transports:\n\n1. **Streamable HTTP**: the recommended choice for remote servers. It supports sessions that keep state, resuming after a disconnect, and messages sent by the server on its own as well as normal request-response.\n   - Client: `StreamableHTTPClientTransport`\n   - Server: `WebStandardStreamableHTTPServerTransport`, plus `NodeStreamableHTTPServerTransport` as a wrapper for Node.js.\n2. **Stdio**: for local communication, where the client starts the server as a child process.\n   - Client: `StdioClientTransport`\n   - Server: `StdioServerTransport`, which reads from stdin and writes to stdout.\n3. **SSE (Server-Sent Events)**: an older HTTP+SSE transport kept for backward compatibility. Users are encouraged to move to Streamable HTTP.\n   - Client: `SSEClientTransport`\n4. **In-Memory**: lets a client and server talk inside the same process, mainly for testing.\n   - `InMemoryTransport`, which creates linked pairs.\n\nYou can also write your own transport by implementing the `Transport` interface. Version 2 of the SDK removed `WebSocketClientTransport` and `SSEServerTransport`.",
+      "calls": [
+        "deepwiki__ask_wiki_question"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "deepwiki-transports",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 4936,
+      "outputTokens": 588,
+      "firstInputTokens": 1145,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 19953,
+      "stopped": "end",
+      "answer": "DeepWiki says the `modelcontextprotocol/typescript-sdk` repository supports four transports:\n\n1. **Streamable HTTP**\n   - This is the recommended transport for remote servers. It supports stateful sessions, resumability, and server-initiated messages.\n   - The client side uses `StreamableHTTPClientTransport`.\n   - The server side uses `WebStandardStreamableHTTPServerTransport`. `NodeStreamableHTTPServerTransport` wraps it for Node.js.\n2. **SSE (Server-Sent Events)**\n   - This is a legacy HTTP+SSE transport kept for backward compatibility. Clients are encouraged to migrate to Streamable HTTP.\n   - The client side uses `SSEClientTransport`. DeepWiki doesn't name a server-side class for SSE.\n3. **stdio**\n   - This is for local process communication, where the client spawns the server as a child process.\n   - It uses `StdioClientTransport` and `StdioServerTransport`.\n4. **In-Memory**\n   - `InMemoryTransport` links a client and server in the same process, mainly for testing. You create a pair with `InMemoryTransport.createLinkedPair()`.\n\nAll of these implement the `Transport` interface, so you can also write custom transports.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "deepwiki-transports",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 36974,
+      "outputTokens": 641,
+      "firstInputTokens": 17830,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 22926,
+      "stopped": "end",
+      "answer": "According to DeepWiki, the `modelcontextprotocol/typescript-sdk` repository supports these transports:\n\n1. **Streamable HTTP**: the recommended transport for remote servers.\n   - Client: `StreamableHTTPClientTransport`, for browser, Node.js, Deno and Bun.\n   - Server: `WebStandardStreamableHTTPServerTransport`, for Web Standard environments such as Workers, Bun and Node 18+.\n   - Server: `NodeStreamableHTTPServerTransport`, a wrapper around the Web Standard one for Node.js (Express and `http.Server`).\n2. **Stdio**: for local process communication, where the client spawns the server as a child process.\n   - Client: `StdioClientTransport`.\n   - Server: `StdioServerTransport`, which reads from stdin and writes to stdout.\n3. **In-Memory**: `InMemoryTransport`, mainly for testing. It creates linked client/server pairs inside one process.\n4. **SSE (Server-Sent Events)**: a legacy HTTP+SSE transport, deprecated and kept for backward compatibility.\n   - Client: `SSEClientTransport`.\n   - Clients are encouraged to migrate to Streamable HTTP.\n\nAll transports implement the `Transport` interface, which has `start`, `send` and `close` methods.\n\nDeepWiki also notes that `entryStateless` and `entryModern` in the e2e tests are not separate transports. They are configurations of the `createMcpHandler` HTTP entry point, so they are variations of Streamable HTTP.",
+      "calls": [
+        "deepwiki__ask_wiki_question"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-echo",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 2384,
+      "outputTokens": 93,
+      "firstInputTokens": 1142,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2601,
+      "stopped": "end",
+      "answer": "The echo tool returned exactly: `Echo: benchmark ping`",
+      "calls": [
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-echo",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35723,
+      "outputTokens": 79,
+      "firstInputTokens": 17827,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2596,
+      "stopped": "end",
+      "answer": "The echo tool returned exactly: `Echo: benchmark ping`",
+      "calls": [
+        "everything__echo"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-echo",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 3742,
+      "outputTokens": 147,
+      "firstInputTokens": 1142,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 2792,
+      "stopped": "end",
+      "answer": "The echo tool returned exactly: `Echo: benchmark ping`",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-echo",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35723,
+      "outputTokens": 76,
+      "firstInputTokens": 17827,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 3987,
+      "stopped": "end",
+      "answer": "The echo tool returned: `Echo: benchmark ping`",
+      "calls": [
+        "everything__echo"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-echo",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 2383,
+      "outputTokens": 111,
+      "firstInputTokens": 1142,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 3310,
+      "stopped": "end",
+      "answer": "I sent `benchmark ping` to the everything server's echo tool, and it returned:\n\n```\nEcho: benchmark ping\n```",
+      "calls": [
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-echo",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35723,
+      "outputTokens": 104,
+      "firstInputTokens": 17827,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 3894,
+      "stopped": "end",
+      "answer": "The echo tool sent back exactly this:\n\n```\nEcho: benchmark ping\n```\n\nThat's your phrase with the prefix \"Echo: \" added.",
+      "calls": [
+        "everything__echo"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-echo",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 3847,
+      "outputTokens": 169,
+      "firstInputTokens": 1142,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4824,
+      "stopped": "end",
+      "answer": "The echo tool returned exactly this: `Echo: benchmark ping`",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-echo",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35723,
+      "outputTokens": 79,
+      "firstInputTokens": 17827,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 3001,
+      "stopped": "end",
+      "answer": "The echo tool returned exactly: `Echo: benchmark ping`",
+      "calls": [
+        "everything__echo"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-sum",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5436,
+      "outputTokens": 147,
+      "firstInputTokens": 1125,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4569,
+      "stopped": "end",
+      "answer": "The everything server's `get_sum` tool reports: **17 + 25 = 42**.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-sum",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35712,
+      "outputTokens": 87,
+      "firstInputTokens": 17810,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2305,
+      "stopped": "end",
+      "answer": "The result is **42** (17 + 25).",
+      "calls": [
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-sum",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5570,
+      "outputTokens": 222,
+      "firstInputTokens": 1125,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 3339,
+      "stopped": "end",
+      "answer": "The sum of 17 and 25 is **42**. I used the everything server's `get_sum` tool to compute it.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-sum",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35712,
+      "outputTokens": 90,
+      "firstInputTokens": 17810,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2890,
+      "stopped": "end",
+      "answer": "The sum of 17 and 25 is **42**.",
+      "calls": [
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-sum",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 7684,
+      "outputTokens": 251,
+      "firstInputTokens": 1125,
+      "modelCalls": 5,
+      "toolCalls": 4,
+      "wallMs": 5089,
+      "stopped": "end",
+      "answer": "The everything server's `get_sum` tool returned **42** for 17 + 25.",
+      "calls": [
+        "describe",
+        "search",
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-sum",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35712,
+      "outputTokens": 98,
+      "firstInputTokens": 17810,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 3541,
+      "stopped": "end",
+      "answer": "The everything server's get-sum tool returned **42** for 17 + 25.",
+      "calls": [
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-sum",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5432,
+      "outputTokens": 154,
+      "firstInputTokens": 1125,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4657,
+      "stopped": "end",
+      "answer": "17 加 25 等于 **42**。这是 everything 服务器的 `get_sum` 工具返回的结果。",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "everything-sum",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35712,
+      "outputTokens": 103,
+      "firstInputTokens": 17810,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2042,
+      "stopped": "end",
+      "answer": "17 + 25 = **42**. The everything server's `get-sum` tool returned this result.",
+      "calls": [
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-list-packages",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5291,
+      "outputTokens": 422,
+      "firstInputTokens": 1142,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 6543,
+      "stopped": "end",
+      "answer": "The `packages` folder (under the repo root `C:\\code-mcp`) contains **4** directories:\n\n1. `conformance`\n2. `core`\n3. `executor-quickjs`\n4. `proxy`",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-list-packages",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 53857,
+      "outputTokens": 225,
+      "firstInputTokens": 17827,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 12176,
+      "stopped": "end",
+      "answer": "I'll start by finding the filesystem server's root directory.\nThe `packages` folder (at `C:\\code-mcp\\packages`) contains **4** directories:\n\n1. `conformance`\n2. `core`\n3. `executor-quickjs`\n4. `proxy`",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-list-packages",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5105,
+      "outputTokens": 272,
+      "firstInputTokens": 1142,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4226,
+      "stopped": "end",
+      "answer": "The `packages` folder (under the allowed root `C:\\code-mcp`) has **4 directories** directly under it:\n\n1. `conformance`\n2. `core`\n3. `executor-quickjs`\n4. `proxy`",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-list-packages",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 53843,
+      "outputTokens": 235,
+      "firstInputTokens": 17827,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 2771,
+      "stopped": "end",
+      "answer": "The `packages` folder (`C:\\code-mcp\\packages`) has **4 directories** directly under it:\n\n1. `conformance`\n2. `core`\n3. `executor-quickjs`\n4. `proxy`",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-list-packages",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5086,
+      "outputTokens": 244,
+      "firstInputTokens": 1142,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 6046,
+      "stopped": "end",
+      "answer": "There are **4** directories directly under `packages` (in the repository at `C:\\code-mcp`):\n\n1. `conformance`\n2. `core`\n3. `executor-quickjs`\n4. `proxy`",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-list-packages",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 53731,
+      "outputTokens": 155,
+      "firstInputTokens": 17827,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 6929,
+      "stopped": "end",
+      "answer": "There are 4 directories directly under `C:\\code-mcp\\packages`:\n\n1. `conformance`\n2. `core`\n3. `executor-quickjs`\n4. `proxy`",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-list-packages",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 7064,
+      "outputTokens": 253,
+      "firstInputTokens": 1142,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 6357,
+      "stopped": "end",
+      "answer": "`C:\\code-mcp\\packages` 下直接包含 4 个目录:\n\n1. `conformance`\n2. `core`\n3. `executor-quickjs`\n4. `proxy`",
+      "calls": [
+        "describe",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-list-packages",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 53731,
+      "outputTokens": 155,
+      "firstInputTokens": 17827,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4314,
+      "stopped": "end",
+      "answer": "`C:\\code-mcp\\packages` has **4** directories directly under it:\n\n1. `conformance`\n2. `core`\n3. `executor-quickjs`\n4. `proxy`",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-package-name",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5849,
+      "outputTokens": 253,
+      "firstInputTokens": 1133,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4613,
+      "stopped": "end",
+      "answer": "The package's name is **`codemcp-cli`** (version 0.1.1).",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-package-name",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 36498,
+      "outputTokens": 88,
+      "firstInputTokens": 17818,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2352,
+      "stopped": "end",
+      "answer": "The package's name is **`codemcp-cli`** (version 0.1.1).",
+      "calls": [
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-package-name",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5774,
+      "outputTokens": 193,
+      "firstInputTokens": 1133,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 3486,
+      "stopped": "end",
+      "answer": "The package name in `packages/proxy/package.json` is **`codemcp-cli`**.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-package-name",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 54681,
+      "outputTokens": 246,
+      "firstInputTokens": 17818,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 3951,
+      "stopped": "end",
+      "answer": "The package name in `packages/proxy/package.json` is **`codemcp-cli`**.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-package-name",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 4599,
+      "outputTokens": 170,
+      "firstInputTokens": 1133,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4794,
+      "stopped": "end",
+      "answer": "The package in `packages/proxy/package.json` is named **`codemcp-cli`** (version 0.1.1).",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-package-name",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 36498,
+      "outputTokens": 117,
+      "firstInputTokens": 17818,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 3995,
+      "stopped": "end",
+      "answer": "The package in `packages/proxy/package.json` is named **`codemcp-cli`**. It's at version 0.1.1, and it installs a command called `codemcp`.",
+      "calls": [
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-package-name",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5741,
+      "outputTokens": 216,
+      "firstInputTokens": 1133,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4570,
+      "stopped": "end",
+      "answer": "The package name is **`codemcp-cli`**. It comes from the `name` field in `packages/proxy/package.json`, which also lists version 0.1.1.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-package-name",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 54459,
+      "outputTokens": 156,
+      "firstInputTokens": 17818,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4418,
+      "stopped": "end",
+      "answer": "The package's name is **`codemcp-cli`**. It's version 0.1.1, in `C:\\code-mcp\\packages\\proxy\\package.json`.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-read-license",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 8241,
+      "outputTokens": 507,
+      "firstInputTokens": 1144,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 16534,
+      "stopped": "end",
+      "answer": "The repository at `C:\\code-mcp` is licensed under the **Apache License, Version 2.0** (January 2004), per its top-level `LICENSE` file.",
+      "calls": [
+        "describe",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-read-license",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 72658,
+      "outputTokens": 295,
+      "firstInputTokens": 17829,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 14291,
+      "stopped": "end",
+      "answer": "I'll start by finding the allowed directories on the filesystem server.\nThe repository at `C:\\code-mcp` uses the **Apache License, Version 2.0** (January 2004), as stated in its top-level `LICENSE` file.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-read-license",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5369,
+      "outputTokens": 360,
+      "firstInputTokens": 1144,
+      "modelCalls": 3,
+      "toolCalls": 3,
+      "wallMs": 3849,
+      "stopped": "end",
+      "answer": "The repository at `C:\\code-mcp` uses the **Apache License, Version 2.0**. I read the top-level `LICENSE` file, and its header reads \"Apache License, Version 2.0, January 2004\".",
+      "calls": [
+        "describe",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-read-license",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 76415,
+      "outputTokens": 307,
+      "firstInputTokens": 17829,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 5011,
+      "stopped": "end",
+      "answer": "The repository at `C:\\code-mcp` uses the **Apache License, Version 2.0**, according to its top-level `LICENSE` file.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-read-license",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 10453,
+      "outputTokens": 511,
+      "firstInputTokens": 1144,
+      "modelCalls": 5,
+      "toolCalls": 4,
+      "wallMs": 14564,
+      "stopped": "end",
+      "answer": "The repository uses the **Apache License, Version 2.0** (January 2004). That's what the header of the top-level `C:\\code-mcp\\LICENSE` file says.",
+      "calls": [
+        "describe",
+        "execute",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-read-license",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 76109,
+      "outputTokens": 235,
+      "firstInputTokens": 17829,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 6962,
+      "stopped": "end",
+      "answer": "The repository uses the **Apache License, Version 2.0** (Apache-2.0). That's what the top-level `C:\\code-mcp\\LICENSE` file says: its header reads \"Apache License, Version 2.0, January 2004\".",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-read-license",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 7978,
+      "outputTokens": 337,
+      "firstInputTokens": 1144,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 6850,
+      "stopped": "end",
+      "answer": "The repository uses the **Apache License, Version 2.0**. I read this from the top-level `LICENSE` file at `C:\\code-mcp\\LICENSE`. Its header reads \"Apache License, Version 2.0, January 2004\".",
+      "calls": [
+        "describe",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-read-license",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 72814,
+      "outputTokens": 247,
+      "firstInputTokens": 17829,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 6419,
+      "stopped": "end",
+      "answer": "The repository uses the **Apache License 2.0**. The top-level `LICENSE` file at `C:\\code-mcp\\LICENSE` begins with \"Apache License, Version 2.0, January 2004\".",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-search-then-read",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 23923,
+      "outputTokens": 1962,
+      "firstInputTokens": 1153,
+      "modelCalls": 8,
+      "toolCalls": 7,
+      "wallMs": 37478,
+      "stopped": "end",
+      "answer": "Note: the filesystem server's `search_files` returned \"No matches found\" for `codemcp.config.json` (it seems unreliable for this pattern), so I located the file by listing directories instead. The only `codemcp.config.json` found is at `C:\\code-mcp\\examples\\basic\\codemcp.config.json`.\n\nIt configures **two servers**:\n\n1. **`catalog`** — `node servers/catalog-server.mjs`\n2. **`crm`** — `node servers/crm-server.mjs` (with env `CRM_TOKEN` = `${CRM_TOKEN}`)\n\nOther settings in the file: passthrough for `catalog.get_item`, policy rules (`catalog.add_note`: allow, `crm.refund_order`: deny), a budget of 50 max calls, a 10 000 ms timeout, and audit/pins files under `.codemcp/`.",
+      "calls": [
+        "describe",
+        "execute",
+        "execute",
+        "execute",
+        "execute",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-search-then-read",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 72445,
+      "outputTokens": 392,
+      "firstInputTokens": 17838,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 8668,
+      "stopped": "end",
+      "answer": "I'll start by finding the allowed directories, then search for the file.\nThe search found two matches: `examples/basic/codemcp.config.json` and `examples/real/codemcp.config.json`.\n\nThe one under `examples/basic` configures **two servers**:\n\n1. **`catalog`** — runs `node servers/catalog-server.mjs`\n2. **`crm`** — runs `node servers/crm-server.mjs` with a `CRM_TOKEN` env var (`${CRM_TOKEN}`)",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__search_files",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-search-then-read",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 18931,
+      "outputTokens": 1140,
+      "firstInputTokens": 1153,
+      "modelCalls": 7,
+      "toolCalls": 7,
+      "wallMs": 13580,
+      "stopped": "end",
+      "answer": "The config at `C:\\code-mcp\\examples\\basic\\codemcp.config.json` configures two servers: **`catalog`** and **`crm`**.\n\nA few notes on how I got there:\n- The filesystem server only allows access under `C:\\code-mcp`, and a recursive search from that root returned no matches for the filename. I found the file by listing `examples\\basic` directly, so the search tool's pattern matching may be unreliable.\n- `crm` also sets an env var, `CRM_TOKEN`, from `${CRM_TOKEN}`.",
+      "calls": [
+        "search",
+        "search",
+        "describe",
+        "execute",
+        "execute",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-search-then-read",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 72811,
+      "outputTokens": 417,
+      "firstInputTokens": 17838,
+      "modelCalls": 4,
+      "toolCalls": 4,
+      "wallMs": 7398,
+      "stopped": "end",
+      "answer": "The `examples/basic/codemcp.config.json` file configures two servers: **`catalog`** and **`crm`**.\n\nThe search under the allowed directory `C:\\code-mcp` found two matches: `examples\\basic` and `examples\\real`. I only read the basic one.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__search_files",
+        "fs__search_files",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-search-then-read",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 10242,
+      "outputTokens": 635,
+      "firstInputTokens": 1153,
+      "modelCalls": 5,
+      "toolCalls": 4,
+      "wallMs": 12858,
+      "stopped": "end",
+      "answer": "I found two files named `codemcp.config.json`:\n- `C:\\code-mcp\\examples\\basic\\codemcp.config.json`\n- `C:\\code-mcp\\examples\\real\\codemcp.config.json`\n\nThe one under `examples/basic` sets up **two servers**:\n1. **`catalog`**: runs `node servers/catalog-server.mjs`\n2. **`crm`**: runs `node servers/crm-server.mjs`, with the environment variable `CRM_TOKEN` set to `${CRM_TOKEN}`",
+      "calls": [
+        "describe",
+        "execute",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-search-then-read",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 90658,
+      "outputTokens": 562,
+      "firstInputTokens": 17838,
+      "modelCalls": 5,
+      "toolCalls": 4,
+      "wallMs": 75158,
+      "stopped": "end",
+      "answer": "Retrying with a narrower search.\nThe config at `examples/basic` sets up two servers:\n\n1. **`catalog`**: runs `node servers/catalog-server.mjs`.\n2. **`crm`**: runs `node servers/crm-server.mjs` and passes in the `CRM_TOKEN` environment variable.\n\nThe search found two files named `codemcp.config.json`: one in `C:\\code-mcp\\examples\\basic\\` and one in `C:\\code-mcp\\examples\\real\\`. The first search across the whole folder timed out. It worked on the second try once I skipped the `node_modules`, `.git` and `dist` folders, so any copies inside those folders weren't checked.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__search_files",
+        "fs__search_files",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-search-then-read",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 12486,
+      "outputTokens": 740,
+      "firstInputTokens": 1153,
+      "modelCalls": 6,
+      "toolCalls": 5,
+      "wallMs": 64477,
+      "stopped": "end",
+      "answer": "`examples/basic/codemcp.config.json` configures two servers:\n\n1. **`catalog`** runs `node servers/catalog-server.mjs`.\n2. **`crm`** runs `node servers/crm-server.mjs` and takes a `CRM_TOKEN` environment variable.\n\nThe search found two copies of the file: `C:\\code-mcp\\examples\\basic\\codemcp.config.json` and `C:\\code-mcp\\examples\\real\\codemcp.config.json`. I only read the `basic` one. The first search with the plain filename returned no matches. The glob pattern `**/codemcp.config.json` found both files.",
+      "calls": [
+        "describe",
+        "execute",
+        "execute",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "fs-search-then-read",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 72295,
+      "outputTokens": 339,
+      "firstInputTokens": 17838,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 62445,
+      "stopped": "end",
+      "answer": "The search found two `codemcp.config.json` files: `C:\\code-mcp\\examples\\basic\\` and `C:\\code-mcp\\examples\\real\\`. The one under `examples/basic` configures two servers:\n\n1. **`catalog`** runs `node servers/catalog-server.mjs`.\n2. **`crm`** runs `node servers/crm-server.mjs` and takes a `CRM_TOKEN` environment variable.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__search_files",
+        "fs__read_text_file"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-fs-everything",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 11703,
+      "outputTokens": 931,
+      "firstInputTokens": 1152,
+      "modelCalls": 4,
+      "toolCalls": 4,
+      "wallMs": 13050,
+      "stopped": "end",
+      "answer": "The output came back wrapped differently than expected, so the count parsed as 0. Re-running with the correct count (4 directories: conformance, core, executor-quickjs, proxy):\n- **Directory count** under `packages`: **4** (`conformance`, `core`, `executor-quickjs`, `proxy`)\n- **Sum** (4 + 100, via the everything server's `get_sum`): **104**",
+      "calls": [
+        "describe",
+        "describe",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-fs-everything",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 72056,
+      "outputTokens": 321,
+      "firstInputTokens": 17837,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 6736,
+      "stopped": "end",
+      "answer": "I'll start by checking which directories the filesystem server can access.\nThere are 4 directories directly under `packages`. Now I'll add that to 100 using the everything server.\n- **Directory count** under `C:\\code-mcp\\packages`: **4** (`conformance`, `core`, `executor-quickjs`, `proxy`)\n- **Sum** (4 + 100): **104**",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory",
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-fs-everything",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 13808,
+      "outputTokens": 588,
+      "firstInputTokens": 1152,
+      "modelCalls": 6,
+      "toolCalls": 6,
+      "wallMs": 10393,
+      "stopped": "end",
+      "answer": "The `packages` folder (at `C:\\code-mcp\\packages`) has **4** directories directly under it: `conformance`, `core`, `executor-quickjs`, and `proxy`. Adding 100 through the everything server's `get_sum` tool gives a sum of **104**.",
+      "calls": [
+        "search",
+        "search",
+        "describe",
+        "execute",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-fs-everything",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 91295,
+      "outputTokens": 459,
+      "firstInputTokens": 17837,
+      "modelCalls": 5,
+      "toolCalls": 4,
+      "wallMs": 7752,
+      "stopped": "end",
+      "answer": "The `packages` folder has 4 directories. Now I'll add 4 to 100 using the everything server's sum tool.\nThe `packages` folder has **4** directories directly under it: `conformance`, `core`, `executor-quickjs`, and `proxy`. Adding 4 to 100 with the everything server gives a sum of **104**.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory",
+        "fs__list_directory",
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-fs-everything",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 16153,
+      "outputTokens": 562,
+      "firstInputTokens": 1152,
+      "modelCalls": 7,
+      "toolCalls": 7,
+      "wallMs": 14914,
+      "stopped": "end",
+      "answer": "There are **4** directories directly under `C:\\code-mcp\\packages`: `conformance`, `core`, `executor-quickjs` and `proxy`.\n\nThe everything server's `get_sum` tool added 4 to 100 and returned **104**.",
+      "calls": [
+        "describe",
+        "search",
+        "describe",
+        "describe",
+        "execute",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-fs-everything",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 90911,
+      "outputTokens": 302,
+      "firstInputTokens": 17837,
+      "modelCalls": 5,
+      "toolCalls": 4,
+      "wallMs": 5550,
+      "stopped": "end",
+      "answer": "There are **4** directories directly under `C:\\code-mcp\\packages`: `conformance`, `core`, `executor-quickjs` and `proxy`.\n\nThe everything server's sum tool added 4 to 100 and returned **104**.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory",
+        "fs__list_directory",
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-fs-everything",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 13495,
+      "outputTokens": 431,
+      "firstInputTokens": 1152,
+      "modelCalls": 5,
+      "toolCalls": 5,
+      "wallMs": 9478,
+      "stopped": "end",
+      "answer": "Need the path; list allowed directories first.\nThere are **4** directories directly under `C:\\code-mcp\\packages`: `conformance`, `core`, `executor-quickjs` and `proxy`.\n\nThe everything server's `get_sum` tool returned 100 + 4 = **104**.",
+      "calls": [
+        "describe",
+        "describe",
+        "execute",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-fs-everything",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 71873,
+      "outputTokens": 243,
+      "firstInputTokens": 17837,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 8175,
+      "stopped": "end",
+      "answer": "There are **4** directories directly under `C:\\code-mcp\\packages`: `conformance`, `core`, `executor-quickjs` and `proxy`.\n\nThe everything server's sum tool gave 4 + 100 = **104**.",
+      "calls": [
+        "fs__list_allowed_directories",
+        "fs__list_directory",
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-memory-everything",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 7200,
+      "outputTokens": 456,
+      "firstInputTokens": 1149,
+      "modelCalls": 3,
+      "toolCalls": 3,
+      "wallMs": 7766,
+      "stopped": "end",
+      "answer": "I'll look up the tool signatures for both servers first.\n- **Entity count** (from `memory.read_graph`): **0** — the knowledge graph is currently empty.\n- **Count + 1** (via `everything.get_sum`): **1**",
+      "calls": [
+        "describe",
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-memory-everything",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 53711,
+      "outputTokens": 172,
+      "firstInputTokens": 17834,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 5497,
+      "stopped": "end",
+      "answer": "The graph has 0 entities.\n- Entity count in the knowledge graph: **0** (the graph is empty — no entities or relations)\n- Count + 1 (via the everything server's `get-sum`): **1**",
+      "calls": [
+        "memory__read_graph",
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-memory-everything",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 10472,
+      "outputTokens": 563,
+      "firstInputTokens": 1149,
+      "modelCalls": 4,
+      "toolCalls": 4,
+      "wallMs": 6291,
+      "stopped": "end",
+      "answer": "The graph has 0 entities. Now I'll add 1 to that count with the everything server's `get_sum` tool, since it has no dedicated \"add\" tool.\nThe memory knowledge graph has **0 entities**. The everything server's `get_sum(0, 1)` returned \"The sum of 0 and 1 is 1,\" so the incremented count is **1**.",
+      "calls": [
+        "describe",
+        "describe",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-memory-everything",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 53771,
+      "outputTokens": 210,
+      "firstInputTokens": 17834,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 7266,
+      "stopped": "end",
+      "answer": "The knowledge graph is empty, so the count is 0. Next I'll add 1 to it with the everything server's sum tool.\nThe memory knowledge graph has 0 entities. Adding 1 to that count with the everything server gives 1.",
+      "calls": [
+        "memory__read_graph",
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-memory-everything",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 8344,
+      "outputTokens": 354,
+      "firstInputTokens": 1149,
+      "modelCalls": 5,
+      "toolCalls": 4,
+      "wallMs": 10291,
+      "stopped": "end",
+      "answer": "The memory server's knowledge graph is empty, so it has **0** entities. The everything server's `get_sum` tool added 1 to that count and returned **1**.",
+      "calls": [
+        "describe",
+        "search",
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-memory-everything",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 53700,
+      "outputTokens": 163,
+      "firstInputTokens": 17834,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 3843,
+      "stopped": "end",
+      "answer": "The memory server's knowledge graph is empty, so the entity count is **0**. It has no relations either.\n\nAdding 1 with the everything server's `get-sum` tool gave **1**.",
+      "calls": [
+        "memory__read_graph",
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-memory-everything",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 10232,
+      "outputTokens": 511,
+      "firstInputTokens": 1149,
+      "modelCalls": 4,
+      "toolCalls": 4,
+      "wallMs": 6100,
+      "stopped": "end",
+      "answer": "Likely the `g?.content?[0]` ternary issue.\nThe memory server's knowledge graph has **0** entities. I read the whole graph with `read_graph` and counted the entities in it.\n\nI then called the everything server's `get_sum` tool with 0 and 1. It returned \"The sum of 0 and 1 is 1\", so the result is **1**.",
+      "calls": [
+        "describe",
+        "describe",
+        "execute",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "join-memory-everything",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 53713,
+      "outputTokens": 166,
+      "firstInputTokens": 17834,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 5888,
+      "stopped": "end",
+      "answer": "Count is 0. Now add 1.\nThe memory server's knowledge graph has **0 entities**. It has no relations either. The everything server's sum tool returned 0 + 1 = **1**.",
+      "calls": [
+        "memory__read_graph",
+        "everything__get-sum"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "memory-search",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 4865,
+      "outputTokens": 207,
+      "firstInputTokens": 1135,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4071,
+      "stopped": "end",
+      "answer": "I searched the memory server's knowledge graph for `codemcp` and found **0 entities** (and 0 relations). The graph currently has no nodes matching that query.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "memory-search",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35718,
+      "outputTokens": 113,
+      "firstInputTokens": 17820,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2754,
+      "stopped": "end",
+      "answer": "I searched the memory server's knowledge graph for `codemcp` and found **0 entities** (and 0 relations). The knowledge graph currently has no nodes matching that query.",
+      "calls": [
+        "memory__search_nodes"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "memory-search",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 4341,
+      "outputTokens": 280,
+      "firstInputTokens": 1135,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 5040,
+      "stopped": "end",
+      "answer": "I found **0** entities for `codemcp` in the memory server's knowledge graph. A search for \"codemcp\" returned no entities and no relations.",
+      "calls": [
+        "search",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "memory-search",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35718,
+      "outputTokens": 93,
+      "firstInputTokens": 17820,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 1961,
+      "stopped": "end",
+      "answer": "I found 0 entities about `codemcp` in the memory server's knowledge graph. The search also returned no relations.",
+      "calls": [
+        "memory__search_nodes"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "memory-search",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 3763,
+      "outputTokens": 181,
+      "firstInputTokens": 1135,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 5272,
+      "stopped": "end",
+      "answer": "I found 0 entities. Searching the memory server's knowledge graph for `codemcp` returned no entities and no relations, so the graph has nothing stored about it yet.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "memory-search",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35718,
+      "outputTokens": 96,
+      "firstInputTokens": 17820,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 5364,
+      "stopped": "end",
+      "answer": "I found **0** entities. Searching the memory server's knowledge graph for \"codemcp\" returned no entities and no relations.",
+      "calls": [
+        "memory__search_nodes"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "memory-search",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 4825,
+      "outputTokens": 191,
+      "firstInputTokens": 1135,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 6074,
+      "stopped": "end",
+      "answer": "I found no entities about `codemcp`. A `search_nodes` query for \"codemcp\" on the memory server's knowledge graph returned empty `entities` and `relations` lists. That makes the count **0**.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "memory-search",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 35718,
+      "outputTokens": 103,
+      "firstInputTokens": 17820,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 2054,
+      "stopped": "end",
+      "answer": "I found 0 entities about `codemcp`. Searching the memory server's knowledge graph for \"codemcp\" returned no entities and no relations.",
+      "calls": [
+        "memory__search_nodes"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "mslearn-az-login",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5570,
+      "outputTokens": 470,
+      "firstInputTokens": 1142,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 8655,
+      "stopped": "end",
+      "answer": "I'll look up the Microsoft Learn search tool and run the query.\nThe exact Azure CLI command to sign in to Azure is:\n\n```azurecli\naz login\n```\n\nPer Microsoft Learn (\"Get started with Azure CLI\"), running `az login` opens your default browser to an Azure sign-in page (authorization code flow). If no browser is available, it falls back to device code flow (or you can force it with `az login --use-device-code`), which directs you to https://aka.ms/devicelogin to enter the code shown in your terminal. After signing in, your subscriptions are listed, and you can switch the active one with `az account set --subscription \"<subscription-id>\"`.\n\nSource: https://learn.microsoft.com/cli/azure/get-started-with-azure-cli?view=azure-cli-latest#sign-in-to-azure",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "mslearn-az-login",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 44056,
+      "outputTokens": 279,
+      "firstInputTokens": 17827,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 5309,
+      "stopped": "end",
+      "answer": "The exact Azure CLI command to sign in to Azure is:\n\n```azurecli\naz login\n```\n\nPer Microsoft Learn (\"Get started with Azure CLI\" / \"Sign into Azure interactively using the Azure CLI\"), running `az login` opens your default browser to an Azure sign-in page (authorization code flow; on Windows it uses Web Account Manager by default since version 2.61.0). If no browser is available, it falls back to device code flow, or you can force it with `az login --use-device-code`. After signing in, your subscriptions are listed, and you can switch with `az account set --subscription \"<subscription-id>\"`.",
+      "calls": [
+        "mslearn__microsoft_docs_search"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "mslearn-az-login",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 13073,
+      "outputTokens": 311,
+      "firstInputTokens": 1142,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 5501,
+      "stopped": "end",
+      "answer": "The command is:\n\n```azurecli\naz login\n```\n\nMicrosoft Learn's \"Get started with Azure CLI\" and \"Sign into Azure interactively using the Azure CLI\" pages both give this as the way to sign in. It opens your default browser for sign-in. If no browser is available, the CLI falls back to device code flow, or you can force it with `az login --use-device-code`.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "mslearn-az-login",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 43771,
+      "outputTokens": 153,
+      "firstInputTokens": 17827,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 5229,
+      "stopped": "end",
+      "answer": "The Azure CLI command to sign in to Azure is:\n\n```\naz login\n```\n\nIt opens your default browser to an Azure sign-in page (authorization code flow). If no browser is available, use `az login --use-device-code` to sign in with a code instead.",
+      "calls": [
+        "mslearn__microsoft_docs_search"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "mslearn-az-login",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5438,
+      "outputTokens": 400,
+      "firstInputTokens": 1142,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 13893,
+      "stopped": "end",
+      "answer": "The command is:\n\n```azurecli\naz login\n```\n\nThis comes from the Microsoft Learn page [\"Get started with Azure CLI\"](https://learn.microsoft.com/cli/azure/get-started-with-azure-cli?view=azure-cli-latest#sign-in-to-azure).\n\n- **How it signs you in:** If the CLI can open your browser, it takes you to the Azure sign-in page. If it can't, it gives you a code to enter at https://aka.ms/devicelogin.\n- **No browser available:** Use `az login --use-device-code` to go straight to the code method.\n- **After you sign in:** You'll see a list of your subscriptions. To switch to a different one, run `az account set --subscription \"<subscription-id>\"`.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "mslearn-az-login",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 44921,
+      "outputTokens": 351,
+      "firstInputTokens": 17827,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 8776,
+      "stopped": "end",
+      "answer": "The command is:\n\n```azurecli\naz login\n```\n\nOn Windows it signs you in through Web Account Manager (WAM). On Linux and macOS it opens a sign-in page in your browser. If neither is available, it falls back to a device code: you go to https://aka.ms/devicelogin and enter the code shown in your terminal.\n\nVariants:\n- To use the device code sign-in on purpose, for example over SSH: `az login --use-device-code`\n- To sign in to a specific tenant: `az login --tenant <tenant-id>`\n- To sign in with a service principal: `az login --service-principal ...`\n- To sign in with a managed identity: `az login --identity`\n\nSource: [Get started with Azure CLI](https://learn.microsoft.com/cli/azure/get-started-with-azure-cli#sign-in-to-azure) on Microsoft Learn.",
+      "calls": [
+        "mslearn__microsoft_docs_search"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "mslearn-az-login",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 5707,
+      "outputTokens": 406,
+      "firstInputTokens": 1142,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 7717,
+      "stopped": "end",
+      "answer": "The Azure CLI command to sign in is:\n\n```\naz login\n```\n\nMicrosoft Learn's \"Get started with Azure CLI\" page documents it. The command opens your default browser for sign-in. If the CLI can't open a browser, it falls back to device code flow. In that case you open https://aka.ms/devicelogin and enter the code shown in your terminal.\n\nTo force device code flow, run `az login --use-device-code`.\n\nAfter you sign in, the CLI lists your subscriptions. The one marked `isDefault: true` is the active one. To switch, run `az account set --subscription \"<subscription-id>\"`.\n\nSource: https://learn.microsoft.com/cli/azure/get-started-with-azure-cli#sign-in-to-azure",
+      "calls": [
+        "search",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "mslearn-az-login",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 45027,
+      "outputTokens": 220,
+      "firstInputTokens": 17827,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 7399,
+      "stopped": "end",
+      "answer": "The command is:\n\n```azurecli\naz login\n```\n\nMicrosoft Learn's \"Get started with Azure CLI\" and \"Sign into Azure interactively using the Azure CLI\" pages both give this command. It opens your default browser to an Azure sign-in page. If the CLI can't open a browser, it falls back to device code flow, where you enter a code at https://aka.ms/devicelogin.\n\nTo force device code flow, run `az login --use-device-code`.",
+      "calls": [
+        "mslearn__microsoft_docs_search"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "thinking-prime",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 4864,
+      "outputTokens": 728,
+      "firstInputTokens": 1150,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 9024,
+      "stopped": "end",
+      "answer": "Using the sequential thinking server in three steps:\n\n1. **Bound the search:** Only primes up to √221 ≈ 14.87 need testing: 2, 3, 5, 7, 11, 13.\n2. **Test divisors:** 221 is odd; digit sum 5 (not divisible by 3); doesn't end in 0/5; 221 ÷ 7 and 221 ÷ 11 are non-integers; but 221 ÷ 13 = 17 exactly.\n3. **Conclude:** 221 = 13 × 17.\n\n**221 is not prime.** Its factors are 1, 13, 17, and 221 (prime factorization: 13 × 17).",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "thinking-prime",
+      "model": "claude-fable-5-1",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": false,
+      "error": "provider refused the request (reasoning_extraction)",
+      "inputTokens": 73449,
+      "outputTokens": 930,
+      "firstInputTokens": 17835,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 12813,
+      "stopped": "refusal:reasoning_extraction",
+      "answer": "I'll work through this using the sequential thinking tool in three steps.",
+      "calls": [
+        "thinking__sequentialthinking",
+        "thinking__sequentialthinking",
+        "thinking__sequentialthinking"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "thinking-prime",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 4909,
+      "outputTokens": 677,
+      "firstInputTokens": 1150,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 4864,
+      "stopped": "end",
+      "answer": "221 is not prime. It factors as **13 × 17**, and both 13 and 17 are prime.\n\nI ran the check through the sequential thinking server in three steps: first I ruled out 2, 3 and 5 and found that only primes up to about 14.9 need testing, then I tested 7 (remainder 4), 11 (remainder 1) and 13 (13 × 17 = 221), and finally I confirmed the factorization.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "thinking-prime",
+      "model": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 36819,
+      "outputTokens": 854,
+      "firstInputTokens": 17835,
+      "modelCalls": 2,
+      "toolCalls": 3,
+      "wallMs": 5135,
+      "stopped": "end",
+      "answer": "221 is not prime. It factors as 13 × 17.",
+      "calls": [
+        "thinking__sequentialthinking",
+        "thinking__sequentialthinking",
+        "thinking__sequentialthinking"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "thinking-prime",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 4704,
+      "outputTokens": 650,
+      "firstInputTokens": 1150,
+      "modelCalls": 3,
+      "toolCalls": 2,
+      "wallMs": 9342,
+      "stopped": "end",
+      "answer": "No, 221 is not prime. It equals **13 × 17**.\n\nI checked it in three steps with the sequential thinking server:\n1. The square root of 221 is about 14.87, so I only needed to try the primes up to 13: 2, 3, 5, 7, 11 and 13.\n2. None of 2, 3, 5, 7 or 11 divides 221 evenly. It's odd, its digits add up to 5, it ends in 1, 221 ÷ 7 leaves 4 and 221 ÷ 11 leaves 1.\n3. 13 × 17 = 221, so 221 is not prime.\n\nThe server's history already held 3 thoughts from an earlier session before these three were added.",
+      "calls": [
+        "describe",
+        "execute"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "thinking-prime",
+      "model": "claude-opus-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 73033,
+      "outputTokens": 782,
+      "firstInputTokens": 17835,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 10153,
+      "stopped": "end",
+      "answer": "221 is not prime. Its prime factorisation is **221 = 13 × 17**.\n\nI worked through it in three steps with the sequential thinking tool:\n1. A number only needs to be tested against primes up to its square root. √221 is about 14.87, so the primes to try are 2, 3, 5, 7, 11 and 13.\n2. 221 isn't divisible by 2, 3, 5, 7 or 11, but 13 × 17 = 221.\n3. Both 13 and 17 are prime, so 221 is composite.",
+      "calls": [
+        "thinking__sequentialthinking",
+        "thinking__sequentialthinking",
+        "thinking__sequentialthinking"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "thinking-prime",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "codemcp",
+      "repeat": 1,
+      "pass": false,
+      "error": "provider refused the request (reasoning_extraction)",
+      "inputTokens": 3783,
+      "outputTokens": 70,
+      "firstInputTokens": 1150,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "wallMs": 3558,
+      "stopped": "refusal:reasoning_extraction",
+      "answer": "",
+      "calls": [
+        "describe"
+      ]
+    },
+    {
+      "set": "no-key",
+      "task": "thinking-prime",
+      "model": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "mode": "direct",
+      "repeat": 1,
+      "pass": true,
+      "error": null,
+      "inputTokens": 73066,
+      "outputTokens": 789,
+      "firstInputTokens": 17835,
+      "modelCalls": 4,
+      "toolCalls": 3,
+      "wallMs": 11188,
+      "stopped": "end",
+      "answer": "221 is not prime. It is composite: 221 = 13 × 17, and 13 and 17 are both prime.\n\nI checked this in three steps with the sequential thinking server:\n1. I only needed to test primes up to √221 ≈ 14.9, which are 2, 3, 5, 7, 11 and 13.\n2. 2, 3, 5, 7 and 11 don't divide 221, but 13 × 17 = 221 exactly.\n3. So 221 has factors 13 and 17.",
+      "calls": [
+        "thinking__sequentialthinking",
+        "thinking__sequentialthinking",
+        "thinking__sequentialthinking"
+      ]
+    }
+  ]
+}
