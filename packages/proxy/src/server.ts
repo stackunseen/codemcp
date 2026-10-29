@@ -117,6 +117,7 @@ export class Proxy {
       budget: this.config.budget ?? {},
       audit,
       auditArgs: this.config.auditIncludeArgs,
+      auditRequired: this.config.auditRequired,
       auditCode: this.config.auditIncludeCode,
       auditResults: this.config.auditIncludeResults,
       limits: this.config.limits,

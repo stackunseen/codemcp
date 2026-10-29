@@ -16,7 +16,10 @@ export type PolicyRule =
     };
 
 export interface PolicyConfig {
-  /** Decision when no rule and no annotation applies. Default `allow`. */
+  /**
+   * Decision when no rule applies. Default `allow`. A stricter default applies to every tool without a
+   * rule, read-only ones included: let reads through with explicit rules such as `"github.list_*": "allow"`.
+   */
   default?: PolicyDecision;
   /**
    * Ordered rules on qualified names (`server.tool`, `*` wildcard). First rule that yields a decision wins.
@@ -24,21 +27,13 @@ export interface PolicyConfig {
    */
   rules?: Record<string, PolicyRule>;
   /**
-   * Use MCP tool annotations when no rule matches:
-   * `readOnlyHint` -> allow, `destructiveHint` -> approve. Default true.
-   * Annotations are hints from the server, so they can only tighten: they never loosen an explicit
-   * rule, and they never loosen the configured `default`. With `default: "approve"` a read-only hint
-   * still means approve; with `default: "deny"` every annotation still means deny.
+   * Use MCP tool annotations when no rule matches. Default true.
+   * Annotations are content the upstream server controls, so they can only tighten a decision, never
+   * loosen one: `destructiveHint` raises the default `allow` to `approve` (and leaves `approve` and
+   * `deny` as they are); `readOnlyHint` changes nothing, since the only direction it could move a
+   * decision is looser.
    */
   inferFromAnnotations?: boolean;
-}
-
-/** allow < approve < deny. */
-const STRICTNESS: Record<PolicyDecision, number> = { allow: 0, approve: 1, deny: 2 };
-
-/** The stricter of two decisions. */
-export function stricter(a: PolicyDecision, b: PolicyDecision): PolicyDecision {
-  return STRICTNESS[a] >= STRICTNESS[b] ? a : b;
 }
 
 /**
@@ -63,10 +58,8 @@ export class Policy {
       const decision = Policy.apply(rule, principal);
       if (decision) return decision;
     }
-    if (this.infer) {
-      if (tool.annotations?.destructiveHint) return stricter("approve", this.fallback);
-      if (tool.annotations?.readOnlyHint) return stricter("allow", this.fallback);
-    }
+    // A destructive hint can only raise the default; a read-only hint could only lower it, so it is ignored.
+    if (this.infer && tool.annotations?.destructiveHint && this.fallback === "allow") return "approve";
     return this.fallback;
   }
 

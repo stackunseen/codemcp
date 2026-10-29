@@ -7,7 +7,8 @@
     "policy_denied": { "fatal": false, "meaning": "denied by a policy rule" },
     "approval_required": { "fatal": false, "meaning": "the call needed human approval and none was granted" },
     "pin_drifted": { "fatal": true, "meaning": "the tool definition changed since it was approved" },
-    "budget_exceeded": { "fatal": true, "meaning": "call count or byte budget exhausted" }
+    "budget_exceeded": { "fatal": true, "meaning": "call count or byte budget exhausted" },
+    "audit_unavailable": { "fatal": true, "meaning": "the audit sink refused the record and the host is configured to fail closed (audit.required)" }
   },
   "executionCodes": ["syntax_error", "runtime_error", "timeout", "memory_limit", "stack_overflow", "executor_failure", "result_too_large", "cancelled"]
 }

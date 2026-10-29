@@ -36,6 +36,8 @@ export interface CodemcpConfig {
     /** JSONL file. Set to `false` to disable. */
     file?: string | false;
     stderr?: boolean;
+    /** Fail closed: a call whose `call_start` record the sink refuses is not forwarded. Default false. */
+    required?: boolean;
     includeArgs?: boolean;
     /** Record the normalized source of every execution so a failure can be reconstructed from the log alone. */
     includeCode?: boolean;
@@ -79,6 +81,7 @@ export interface ResolvedConfig extends CodemcpConfig {
   passthrough: string[];
   auditFile: string | undefined;
   auditStderr: boolean;
+  auditRequired: boolean;
   auditIncludeArgs: boolean;
   auditIncludeCode: boolean;
   auditIncludeResults: boolean;
@@ -175,6 +178,7 @@ export class ConfigLoader {
       passthrough: config.passthrough ?? [],
       auditFile: config.audit?.file === false ? undefined : (config.audit?.file ?? join(home, "audit.jsonl")),
       auditStderr: config.audit?.stderr ?? false,
+      auditRequired: config.audit?.required ?? false,
       auditIncludeArgs: config.audit?.includeArgs ?? false,
       auditIncludeCode: config.audit?.includeCode ?? false,
       auditIncludeResults: config.audit?.includeResults ?? false,

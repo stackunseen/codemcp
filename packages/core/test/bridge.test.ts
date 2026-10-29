@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BridgeCallError, BridgeHost, MemorySink, PinStore, Policy, ToolRegistry } from "../src/index.js";
-import type { Executor, HostFunction, JsonValue } from "../src/index.js";
+import type { AuditEvent, Executor, HostFunction, JsonValue } from "../src/index.js";
 
 /**
  * A fake executor that runs the "script" as a list of calls, so the bridge can be tested without
@@ -108,6 +108,61 @@ describe("BridgeHost", () => {
     expect(starts).toHaveLength(1);
     expect(starts[0]).toMatchObject({ seq: 2, tool: "gh.echo", decision: "allow" });
     expect(audit.events.filter((e) => e.type === "call")).toHaveLength(2);
+  });
+
+  it("hands events to the sink in the order they happen, even when the executor calls a tool at once", async () => {
+    const { bridge, audit } = setup();
+    const r = await bridge.run('gh.echo({"s":"hi"});');
+    expect(r.status).toBe("completed");
+    expect(audit.events.map((e) => e.type)).toEqual(["execution_start", "call_start", "call", "execution_end"]);
+  });
+
+  it("fail-open by default: a sink that refuses call_start does not block the call, and the call event says so", async () => {
+    const registry = new ToolRegistry();
+    registry.setServerTools("gh", [{ name: "echo", inputSchema: { type: "object" } }]);
+    const seen: AuditEvent[] = [];
+    let upstream = 0;
+    const bridge = new BridgeHost({
+      registry,
+      executor: scripted,
+      audit: {
+        write: (e) => {
+          seen.push(e);
+          if (e.type === "call_start") throw new Error("disk full");
+        },
+      },
+      callUpstream: async () => {
+        upstream++;
+        return "ok";
+      },
+    });
+    const r = await bridge.run("gh.echo({});");
+    expect(r.status).toBe("completed");
+    expect(upstream).toBe(1);
+    expect(r.calls[0]).toMatchObject({ ok: true, auditError: "disk full" });
+    expect(seen.find((e) => e.type === "call")).toMatchObject({ ok: true, auditError: "disk full" });
+  });
+
+  it("auditRequired: a sink that refuses call_start fails the call closed with a fatal audit_unavailable", async () => {
+    const registry = new ToolRegistry();
+    registry.setServerTools("gh", [{ name: "echo", inputSchema: { type: "object" } }]);
+    let upstream = 0;
+    const bridge = new BridgeHost({
+      registry,
+      executor: scripted,
+      auditRequired: true,
+      audit: { write: async (e) => {
+        if (e.type === "call_start") throw new Error("collector down");
+      } },
+      callUpstream: async () => {
+        upstream++;
+        return "ok";
+      },
+    });
+    const r = await bridge.run("gh.echo({});\ngh.echo({});");
+    expect(r.status).toBe("error");
+    expect(r.error?.code).toBe("audit_unavailable");
+    expect(upstream).toBe(0);
   });
 
   it("denies destructive tools without an approval handler; the refusal is catchable and later calls still run", async () => {

@@ -7,7 +7,7 @@ codemcp is pre-alpha. This page says what you can rely on today and what you can
 - **Small tool surface.** Three fixed tools, about 500 tokens. Stubs are pulled on demand at three detail levels, and `describe` refuses to dump more than 60 signatures at once.
 - **Data stays in the sandbox.** Loops, filters and joins run there, and concurrent calls are batched. A two-server join of 12 calls returns two numbers in about 120 ms.
 - **Arguments are validated before the network.** A bad call gets a catchable `invalid_arguments` error with the JSON pointer, and the script can fix it in the same run.
-- **Policy is evaluated on the qualified `server.tool` name**, never on a name the model typed. Annotations infer read-only and destructive; explicit rules override.
+- **Policy is evaluated on the qualified `server.tool` name**, never on a name the model typed. A server's `destructiveHint` raises a default of allow to approve; annotations never loosen a decision, so `readOnlyHint` does not bypass a strict default. Explicit rules override.
 - **Limits are enforced from outside the guest.** Call, per-result, total and return byte budgets; memory, stack and deadline; a worker heap cap. The guest clock stops while waiting on the host.
 - **No credential enters the sandbox.** There is no process, env, filesystem or network inside. Each upstream holds its own transport, env and headers, and a missing `${VAR}` fails at startup.
 - **Approvals park the script.** The suspended worker is the state. A decision is keyed by execution id and call number and arrives through elicitation, the `approve` tool or an operator channel. A denial is catchable.

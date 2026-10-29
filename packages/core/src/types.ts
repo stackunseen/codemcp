@@ -57,6 +57,8 @@ export interface CallRecord {
   durationMs: number;
   ok: boolean;
   decision: PolicyDecision;
+  /** Set when the sink refused the `call_start` record and the host was not configured to fail closed. */
+  auditError?: string;
   /** Bridge error code when `ok` is false. */
   errorCode?: string;
   error?: string;

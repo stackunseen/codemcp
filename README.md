@@ -16,7 +16,7 @@ Loops, filters and joins over tool results run inside the sandbox. Only the fina
 
 Model-written code is attacker-controlled, because that is what prompt injection makes it. The default executor is QuickJS compiled to WebAssembly on a worker thread, with memory, stack and deadline limits enforced from outside. Your credentials never enter the sandbox; the only thing inside is a JSON bridge to stubs the proxy has already authorized.
 
-Governance sits where it can be enforced: allow, deny or approve rules per tool and per principal, read-only inference from MCP annotations, pinned tool definitions with drift detection, call and byte budgets, and an audit record of every bridged call. When a call needs a human, the sandbox parks mid-call and continues when you decide. A denial is catchable, so the script can fall back instead of losing its work.
+Governance sits where it can be enforced: allow, deny or approve rules per tool and per principal, `destructiveHint` annotations that raise a tool to approve (annotations can tighten a decision, never loosen it), pinned tool definitions with drift detection, call and byte budgets, and an audit record of every bridged call. When a call needs a human, the sandbox parks mid-call and continues when you decide. A denial is catchable, so the script can fall back instead of losing its work.
 
 It works in front of Claude Code, Cursor, VS Code, Codex CLI, Claude Desktop and any other MCP client, with any model.
 

@@ -43,6 +43,12 @@ export interface BridgeHostOptions {
   auditCode?: boolean;
   /** Include each execution's returned value and logs in its `execution_end` event. Off by default. */
   auditResults?: boolean;
+  /**
+   * Fail closed: when the sink refuses the `call_start` record, do not forward the call and end the
+   * execution with `audit_unavailable`. Off by default, where a failing sink is logged to the `call`
+   * event's error and the call proceeds.
+   */
+  auditRequired?: boolean;
   limits?: ExecuteLimits;
   /** How long one upstream call may take before it fails with `upstream_error`. Default 60 s. Approvals have their own clock. */
   upstreamTimeoutMs?: number;
@@ -74,7 +80,7 @@ export class BridgeHost {
   private readonly normalizer = new CodeNormalizer();
 
   constructor(options: BridgeHostOptions) {
-    this.opts = { policy: new Policy(), pins: new PinStore(), budget: {}, audit: new NullSink(), auditArgs: false, auditCode: false, auditResults: false, upstreamTimeoutMs: 60_000, ...stripUndefined(options) } as typeof this.opts;
+    this.opts = { policy: new Policy(), pins: new PinStore(), budget: {}, audit: new NullSink(), auditArgs: false, auditCode: false, auditResults: false, auditRequired: false, upstreamTimeoutMs: 60_000, ...stripUndefined(options) } as typeof this.opts;
   }
 
   /** Normalize, syntax-check and run `code`, exposing every registered tool through the bridge. */
@@ -113,12 +119,12 @@ export class BridgeHost {
         try {
           const { value, bytes, truncated } = await this.handleCall(executionId, tool, args, budget, record, run.signal, options, base);
           Object.assign(record, { ok: true, durationMs: Date.now() - callStart, resultBytes: bytes });
-          this.write({ type: "call", ...base, ts: iso(), decision: record.decision, ok: true, durationMs: record.durationMs, resultBytes: bytes, truncated });
+          this.write({ type: "call", ...base, ts: iso(), decision: record.decision, ok: true, durationMs: record.durationMs, resultBytes: bytes, truncated, ...(record.auditError ? { auditError: record.auditError } : {}) });
           return value;
         } catch (err) {
           const e = asBridgeError(err);
           Object.assign(record, { durationMs: Date.now() - callStart, errorCode: e.code, error: e.message });
-          this.write({ type: "call", ...base, ts: iso(), decision: record.decision, ok: false, durationMs: record.durationMs, error: `${e.code}: ${e.message}` });
+          this.write({ type: "call", ...base, ts: iso(), decision: record.decision, ok: false, durationMs: record.durationMs, error: `${e.code}: ${e.message}`, ...(record.auditError ? { auditError: record.auditError } : {}) });
           if (e.fatal) {
             fatal ??= e;
             throw e;
@@ -182,7 +188,7 @@ export class BridgeHost {
     budget.takeCall();
 
     // The call is in the audit stream before anything leaves the process, so a crash mid-call still leaves a record.
-    await this.writeBeforeForward({ type: "call_start", ...base, ts: iso(), decision: record.decision });
+    await this.writeBeforeForward({ type: "call_start", ...base, ts: iso(), decision: record.decision }, record);
 
     // One controller per call: the run's cancellation and this call's timeout both abort the upstream request.
     const call = new AbortController();
@@ -226,17 +232,32 @@ export class BridgeHost {
     return validator;
   }
 
-  /** Completion writes are not awaited per call; the sink is flushed once at the end of the execution. */
+  /**
+   * Hands the event to the sink synchronously, so events reach the sink in the order they happen whatever
+   * the executor's timing. Completion is not awaited per event; the sink is flushed once at the end of
+   * the execution. A sink failure here is swallowed: these are records of things that already happened.
+   */
   private write(event: AuditEvent): void {
-    void Promise.resolve().then(() => this.opts.audit.write(event)).catch(() => undefined);
+    try {
+      const r = this.opts.audit.write(event);
+      if (r) r.catch(() => undefined);
+    } catch {
+      // see above
+    }
   }
 
-  /** The one awaited write: a failing sink never blocks the call, but a sink that accepts holds the event before the upstream does. */
-  private async writeBeforeForward(event: AuditEvent): Promise<void> {
+  /**
+   * The one awaited write. A sink that accepts holds the record before the upstream sees the call. A sink
+   * that refuses fails the call when `auditRequired` is set; otherwise the call proceeds and the refusal
+   * is noted on the `call` event.
+   */
+  private async writeBeforeForward(event: Extract<AuditEvent, { type: "call_start" }>, record: CallRecord): Promise<void> {
     try {
       await this.opts.audit.write(event);
-    } catch {
-      // Auditing is best effort per sink; the sinks themselves decide whether to retry.
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      if (this.opts.auditRequired) throw new BridgeCallError("audit_unavailable", `Audit sink refused the record for ${event.tool} (${reason}); the call was not forwarded`);
+      record.auditError = reason;
     }
   }
 
@@ -252,7 +273,11 @@ export class BridgeHost {
       error: result.error?.message,
       ...(this.opts.auditResults ? { value: result.value ?? null, logs: result.logs } : {}),
     });
-    await this.opts.audit.flush?.();
+    try {
+      await this.opts.audit.flush?.();
+    } catch {
+      // A sink that fails to flush has already reported it through write(); nothing more to do at the end of a run.
+    }
   }
 }
 

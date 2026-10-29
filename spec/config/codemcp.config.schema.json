@@ -88,6 +88,7 @@
       "properties": {
         "file": { "oneOf": [{ "type": "string" }, { "const": false }] },
         "stderr": { "type": "boolean" },
+        "required": { "type": "boolean", "description": "Fail closed: a call whose call_start record the sink refuses is not forwarded and ends the execution with audit_unavailable. Default false." },
         "includeArgs": { "type": "boolean" },
         "includeCode": { "type": "boolean" },
         "includeResults": { "type": "boolean" },

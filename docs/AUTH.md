@@ -56,6 +56,12 @@ With a principal, policy rules can decide per subject:
 
 The id is checked first, then roles in the order the principal lists them, then the default. Approvals are bound to the principal that started the execution; only that principal or an operator role (`approvals.operatorRoles`, default `["operator"]`) can resume it. Every audit event carries the principal.
 
+A policy `default` of `approve` or `deny` applies to every tool without a rule, including ones the server marks `readOnlyHint`. Annotations come from the server, so they are never allowed to loosen a decision: `destructiveHint` can raise a default of `allow` to `approve`, but `readOnlyHint` cannot lower anything. Under a strict default, let reads through with explicit rules:
+
+```json
+"policy": { "default": "approve", "rules": { "github.list_*": "allow", "github.get_*": "allow" } }
+```
+
 Per-principal upstream credentials, where the finance lead's own GitHub login is used for her calls, need the SDK v2 migration first.
 
 ## Human in the loop
@@ -83,3 +89,5 @@ Every configured server has a state: `connected`, `auth_failed`, `unreachable` o
 Each execution writes an `execution_start` event (code hash, normalization fixes, principal, and the source with `audit.includeCode`), a `call_start` event before each call is forwarded (tool, decision, and arguments with `audit.includeArgs`), one `call` event per bridged call when it settles (tool, decision, duration, bytes, arguments), and an `execution_end` event (status, call count, and the result with `audit.includeResults`). Events carry the request's `traceparent` when the client sends one.
 
 Several destinations can be active at once: `audit.file` (default `~/.codemcp/audit.jsonl`), `audit.stderr`, `audit.webhook` (`{ url, headers, batchMs }`, batched, retried once, never slows an execution), and `onAudit` on `ProxyOptions` for your own tracer or queue. The sink classes are exported from `codemcp-core`.
+
+The `call_start` record is the one write the host waits for: the upstream request is not sent until the sink has accepted it. By default a sink that refuses does not block the call; the `call` record then carries `auditError`. Set `audit.required: true` to fail closed, so a call the sink cannot record is refused and the execution ends with `audit_unavailable`. The file sink counts a record as accepted once the line has reached the OS; the webhook sink batches and never refuses.

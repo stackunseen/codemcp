@@ -1,5 +1,5 @@
 // Generated from spec/VERSION and spec/bridge/errors.json by scripts/sync-spec.mjs. Do not edit; edit the spec and run `pnpm spec:sync`.
-export const SPEC_VERSION = "0.1.0";
+export const SPEC_VERSION = "0.2.0";
 
 /** Every error code a guest can observe on a rejected call, and whether it also ends the execution. */
 export const BRIDGE_ERRORS = {
@@ -10,6 +10,7 @@ export const BRIDGE_ERRORS = {
   approval_required: { fatal: false },
   pin_drifted: { fatal: true },
   budget_exceeded: { fatal: true },
+  audit_unavailable: { fatal: true },
 } as const;
 
 /** Codes raised by an executor itself. */

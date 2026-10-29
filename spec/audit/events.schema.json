@@ -55,6 +55,7 @@
         "resultBytes": { "type": "integer" },
         "truncated": { "type": "boolean" },
         "error": { "type": "string" },
+        "auditError": { "type": "string", "description": "The sink refused this call's call_start record and the host ran fail-open." },
         "args": {}
       }
     },
