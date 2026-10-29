@@ -28,7 +28,7 @@ Host to guest:
 { "v": 1, "seq": 1, "ok": false, "error": { "code": "policy_denied", "message": "..." } }
 ```
 
-Per call the host runs, in order: pin check, policy, approval if required, argument validation, call budget, forward upstream with an abort signal and timeout, serialize, truncate to `maxResultBytes`, byte budget, audit `call` event, return.
+Per call the host runs, in order: pin check, policy, approval if required, argument validation, call budget, audit `call_start` event (awaited, so the sink holds it before anything leaves the process), forward upstream with an abort signal and timeout, serialize, truncate to `maxResultBytes`, byte budget, audit `call` event, return.
 
 `sleep(ms)` is the guest's one other asynchronous capability, carried the same way and counted against the deadline. A script that returns while a call is still pending fails with a `runtime_error` naming the missing `await`; the call is still forwarded, never dropped.
 

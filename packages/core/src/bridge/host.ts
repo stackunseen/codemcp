@@ -63,7 +63,7 @@ export interface RunOptions {
 
 /**
  * Host side of the bridge. Every model-initiated tool call passes through here in this order:
- * pin check, policy, approval, schema validation, budget, forward, size cap, audit.
+ * pin check, policy, approval, schema validation, budget, audit (call_start), forward, size cap, audit (call).
  * Only JSON crosses in either direction; credentials stay inside `callUpstream`.
  */
 export class BridgeHost {
@@ -109,16 +109,16 @@ export class BridgeHost {
         const args = toPlainJson(rawArgs);
         const record: CallRecord = { seq: ++seq, tool: tool.qualifiedName, startedAt: callStart - started, durationMs: 0, ok: false, decision: "deny" };
         calls.push(record);
-        const base = { type: "call" as const, executionId, ...trace, seq: record.seq, tool: tool.qualifiedName, ...(this.opts.auditArgs ? { args } : {}) };
+        const base = { executionId, ...trace, seq: record.seq, tool: tool.qualifiedName, ...(this.opts.auditArgs ? { args } : {}) };
         try {
-          const { value, bytes, truncated } = await this.handleCall(executionId, tool, args, budget, record, run.signal, options);
+          const { value, bytes, truncated } = await this.handleCall(executionId, tool, args, budget, record, run.signal, options, base);
           Object.assign(record, { ok: true, durationMs: Date.now() - callStart, resultBytes: bytes });
-          this.write({ ...base, ts: iso(), decision: record.decision, ok: true, durationMs: record.durationMs, resultBytes: bytes, truncated });
+          this.write({ type: "call", ...base, ts: iso(), decision: record.decision, ok: true, durationMs: record.durationMs, resultBytes: bytes, truncated });
           return value;
         } catch (err) {
           const e = asBridgeError(err);
           Object.assign(record, { durationMs: Date.now() - callStart, errorCode: e.code, error: e.message });
-          this.write({ ...base, ts: iso(), decision: record.decision, ok: false, durationMs: record.durationMs, error: `${e.code}: ${e.message}` });
+          this.write({ type: "call", ...base, ts: iso(), decision: record.decision, ok: false, durationMs: record.durationMs, error: `${e.code}: ${e.message}` });
           if (e.fatal) {
             fatal ??= e;
             throw e;
@@ -161,6 +161,7 @@ export class BridgeHost {
     record: CallRecord,
     runSignal: AbortSignal,
     options: RunOptions,
+    base: Omit<Extract<AuditEvent, { type: "call_start" }>, "type" | "ts" | "decision">,
   ): Promise<{ value: JsonValue; bytes: number; truncated: boolean }> {
     const { traceparent, principal } = options;
     const pin = this.opts.pins.check(tool);
@@ -179,6 +180,9 @@ export class BridgeHost {
     // Validate before spending budget so an argument mistake does not cost a retry.
     this.validate(tool, args);
     budget.takeCall();
+
+    // The call is in the audit stream before anything leaves the process, so a crash mid-call still leaves a record.
+    await this.writeBeforeForward({ type: "call_start", ...base, ts: iso(), decision: record.decision });
 
     // One controller per call: the run's cancellation and this call's timeout both abort the upstream request.
     const call = new AbortController();
@@ -222,9 +226,18 @@ export class BridgeHost {
     return validator;
   }
 
-  /** Audit writes are not awaited per call; the sink is flushed once at the end of the execution. */
+  /** Completion writes are not awaited per call; the sink is flushed once at the end of the execution. */
   private write(event: AuditEvent): void {
-    void this.opts.audit.write(event);
+    void Promise.resolve().then(() => this.opts.audit.write(event)).catch(() => undefined);
+  }
+
+  /** The one awaited write: a failing sink never blocks the call, but a sink that accepts holds the event before the upstream does. */
+  private async writeBeforeForward(event: AuditEvent): Promise<void> {
+    try {
+      await this.opts.audit.write(event);
+    } catch {
+      // Auditing is best effort per sink; the sinks themselves decide whether to retry.
+    }
   }
 
   private async end(executionId: string, trace: { traceparent?: string; principal?: string }, result: ExecuteResult): Promise<void> {

@@ -10,7 +10,11 @@ interface ExecutionScoped {
   principal?: string;
 }
 
-/** One line of the JSONL audit log. Every bridged call produces exactly one `call` event. */
+/**
+ * One line of the JSONL audit log. Every call that reaches the upstream produces a `call_start` event
+ * before it is forwarded and exactly one `call` event when it settles; a call refused by the pin, policy,
+ * approval, schema or budget produces only the `call` event.
+ */
 export type AuditEvent =
   | (ExecutionScoped & {
       type: "execution_start";
@@ -20,6 +24,15 @@ export type AuditEvent =
       executor: string;
       /** Only included when `auditCode` is on. */
       code?: string;
+    })
+  | (ExecutionScoped & {
+      /** Written, and accepted by the sink, before the call is forwarded upstream. */
+      type: "call_start";
+      seq: number;
+      tool: string;
+      decision: PolicyDecision;
+      /** Only included when `includeArgs` is on. Arguments can contain sensitive data. */
+      args?: JsonValue;
     })
   | (ExecutionScoped & {
       type: "call";

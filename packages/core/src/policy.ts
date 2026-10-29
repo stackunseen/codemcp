@@ -24,16 +24,27 @@ export interface PolicyConfig {
    */
   rules?: Record<string, PolicyRule>;
   /**
-   * Use MCP tool annotations as defaults when no rule matches:
+   * Use MCP tool annotations when no rule matches:
    * `readOnlyHint` -> allow, `destructiveHint` -> approve. Default true.
-   * Annotations are hints from the server and are never allowed to *loosen* an explicit rule.
+   * Annotations are hints from the server, so they can only tighten: they never loosen an explicit
+   * rule, and they never loosen the configured `default`. With `default: "approve"` a read-only hint
+   * still means approve; with `default: "deny"` every annotation still means deny.
    */
   inferFromAnnotations?: boolean;
 }
 
+/** allow < approve < deny. */
+const STRICTNESS: Record<PolicyDecision, number> = { allow: 0, approve: 1, deny: 2 };
+
+/** The stricter of two decisions. */
+export function stricter(a: PolicyDecision, b: PolicyDecision): PolicyDecision {
+  return STRICTNESS[a] >= STRICTNESS[b] ? a : b;
+}
+
 /**
  * Decide what happens when a script calls a tool. Evaluated on the qualified name and the principal.
- * Explicit rules beat annotations; annotations beat the default. Rules are compiled once.
+ * Explicit rules win. Otherwise an annotation may tighten the configured default but never loosen it,
+ * since the annotation is content the upstream server controls. Rules are compiled once.
  */
 export class Policy {
   private readonly rules: Array<[RegExp, PolicyRule]>;
@@ -53,8 +64,8 @@ export class Policy {
       if (decision) return decision;
     }
     if (this.infer) {
-      if (tool.annotations?.destructiveHint) return "approve";
-      if (tool.annotations?.readOnlyHint) return "allow";
+      if (tool.annotations?.destructiveHint) return stricter("approve", this.fallback);
+      if (tool.annotations?.readOnlyHint) return stricter("allow", this.fallback);
     }
     return this.fallback;
   }

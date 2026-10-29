@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://codemcp.dev/spec/audit/events.schema.json",
   "title": "codemcp audit event",
-  "description": "One line of the audit stream. Every bridged call produces exactly one `call` event.",
+  "description": "One line of the audit stream. A call that is forwarded upstream produces a `call_start` event before forwarding and exactly one `call` event when it settles; a call refused before forwarding produces only the `call` event.",
   "oneOf": [
     {
       "type": "object",
@@ -19,6 +19,22 @@
         "fixes": { "type": "array", "items": { "type": "string" } },
         "executor": { "type": "string" },
         "code": { "type": "string" }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["type", "executionId", "ts", "seq", "tool", "decision"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "call_start" },
+        "executionId": { "type": "string" },
+        "ts": { "type": "string" },
+        "traceparent": { "type": "string" },
+        "principal": { "type": "string" },
+        "seq": { "type": "integer" },
+        "tool": { "type": "string", "description": "Qualified upstream name `server.tool`." },
+        "decision": { "enum": ["allow", "approve"] },
+        "args": {}
       }
     },
     {

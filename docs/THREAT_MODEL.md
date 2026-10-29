@@ -35,9 +35,10 @@ codemcp will not ship these as executors. Node `vm`, whose docs say it "is not a
 ## Invariants the code enforces
 
 1. The sandbox never receives a credential, a host object or a schema instance. Only JSON.
-2. Every bridged call is checked against the pin, the policy, the budget and the input schema, and written to the audit log, before it is forwarded.
+2. Every bridged call is checked against the pin, the policy, the budget and the input schema before it is forwarded. A call that passes is written to the audit log (`call_start`), and the sink has accepted it, before the upstream request is sent; its outcome is written when it settles (`call`). A call that is refused produces the `call` event alone.
 3. A tool whose pinned definition changed is blocked until someone re-approves it.
 4. Limits on time, memory, stack, calls and bytes are enforced by the host, never by cooperation of the guest.
 5. Policy decisions use the qualified `server.tool` name, never a display name the model typed.
+6. A tool annotation from a server can tighten the policy decision but never loosen it: a `readOnlyHint` cannot turn a default of `approve` or `deny` into `allow`.
 
 Report a weakness in any of these through the private channel in [SECURITY.md](../SECURITY.md).

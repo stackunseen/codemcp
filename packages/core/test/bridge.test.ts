@@ -72,6 +72,44 @@ describe("BridgeHost", () => {
     expect(r.calls.map((c) => c.seq)).toEqual([1, 2]);
   });
 
+  it("writes call_start, and the sink has accepted it, before the call is forwarded; refused calls get no call_start", async () => {
+    const order: string[] = [];
+    const pending: Promise<void>[] = [];
+    const registry = new ToolRegistry();
+    registry.setServerTools("gh", [{ name: "echo", inputSchema: { type: "object" } }, { name: "nuke", inputSchema: {}, annotations: { destructiveHint: true } }]);
+    const audit = new MemorySink();
+    const bridge = new BridgeHost({
+      registry,
+      executor: scripted,
+      // A slow sink: proves the host waits for call_start to be accepted, while completion writes are only flushed at the end.
+      audit: {
+        write: (e) => {
+          const p = new Promise<void>((r) => setTimeout(r, 5)).then(() => {
+            audit.write(e);
+            order.push(`audit:${e.type}`);
+          });
+          pending.push(p);
+          return p;
+        },
+        flush: async () => {
+          await Promise.all(pending);
+        },
+      },
+      callUpstream: async () => {
+        order.push("upstream");
+        return "ok";
+      },
+    });
+    const r = await bridge.run("gh.nuke({});\ngh.echo({});");
+    expect(r.status).toBe("completed");
+    expect(order.indexOf("audit:call_start")).toBeGreaterThan(-1);
+    expect(order.indexOf("audit:call_start")).toBeLessThan(order.indexOf("upstream"));
+    const starts = audit.events.filter((e) => e.type === "call_start");
+    expect(starts).toHaveLength(1);
+    expect(starts[0]).toMatchObject({ seq: 2, tool: "gh.echo", decision: "allow" });
+    expect(audit.events.filter((e) => e.type === "call")).toHaveLength(2);
+  });
+
   it("denies destructive tools without an approval handler; the refusal is catchable and later calls still run", async () => {
     const { bridge, upstreamCalls } = setup();
     const r = await bridge.run('gh.nuke({});\ngh.echo({"s":"after"});');
