@@ -1,6 +1,6 @@
 {
   "name": "codemcp-core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Core of codemcp: tool registry, JSON Schema to TypeScript stubs, JSON-only bridge, policy, budgets, pinning, audit, search.",
   "license": "Apache-2.0",
   "repository": {
