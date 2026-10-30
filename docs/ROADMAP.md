@@ -9,6 +9,7 @@ Monorepo with three-OS CI. Core: registry, deterministic TypeScript stubs at thr
 ## Next
 
 - [ ] Publish benchmark numbers for three model families from the `benchmark` workflow
+- [ ] A `reason` field on `approval_required` errors (denied, expired, no approver) so scripts branch on it instead of the message text; publish to the MCP registry from the release workflow
 - [ ] Install recipes per client with CI smoke tests
 - [ ] Structured results through passthrough and `execute`
 - [ ] Migrate to the MCP TypeScript SDK v2: dual-era negotiation, one server object per request, `ttlMs` / `cacheScope` / `resultType`, approvals as multi round-trip requests on 2026-07-28 connections
