@@ -23,6 +23,7 @@ import {
   SURFACE,
   ToolRegistry,
   ToolSearch,
+  type ApprovalDecision,
   type ApprovalRequest,
   type AuditEvent,
   type AuditSink,
@@ -300,7 +301,7 @@ export class Proxy {
   }
 
   /** Elicit a decision from the client when it can show one; otherwise park the call for an out-of-band decision. */
-  private async askHuman(req: ApprovalRequest): Promise<boolean> {
+  private async askHuman(req: ApprovalRequest): Promise<ApprovalDecision> {
     if (this.server.getClientCapabilities()?.elicitation) {
       try {
         const shownArgs = JSON.stringify(req.args).slice(0, 500);
@@ -312,7 +313,8 @@ export class Proxy {
           // A human is answering: wait as long as a parked approval would, not the SDK's default minute.
           { timeout: this.config.approvalTimeoutMs },
         );
-        return res.action === "accept" && (res.content as { decision?: string } | undefined)?.decision === "allow";
+        const allowed = res.action === "accept" && (res.content as { decision?: string } | undefined)?.decision === "allow";
+        return allowed ? { allow: true } : { allow: false, reason: "denied" };
       } catch (err) {
         this.log(`[codemcp] elicitation failed (${(err as Error).message}); parking the call instead`);
       }

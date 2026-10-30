@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BridgeCallError, BridgeHost, MemorySink, PinStore, Policy, ToolRegistry } from "../src/index.js";
+import { ApprovalGate, BridgeCallError, BridgeHost, MemorySink, PinStore, Policy, ToolRegistry } from "../src/index.js";
 import type { AuditEvent, Executor, HostFunction, JsonValue } from "../src/index.js";
 
 /**
@@ -172,6 +172,27 @@ describe("BridgeHost", () => {
     expect(r.value).toEqual([expect.stringContaining("requires approval"), { echoed: "after" }]);
     expect(r.calls[0]).toMatchObject({ ok: false, errorCode: "approval_required", decision: "approve" });
     expect(upstreamCalls).toEqual([{ tool: "gh.echo", args: { s: "after" } }]);
+  });
+
+  it("tells the script whether an approval was denied, expired or had nobody to ask", async () => {
+    const { bridge: noHandler } = setup();
+    const none = await noHandler.run("gh.nuke({});");
+    expect(none.value).toEqual([expect.stringContaining("no approver is configured")]);
+
+    const { registry } = setup();
+    const gate = new ApprovalGate(30);
+    const bridge = new BridgeHost({ registry, executor: scripted, callUpstream: async () => "ok", approvals: gate.request });
+
+    const expiring = bridge.run("gh.nuke({});", { executionId: "exp" });
+    const expired = await expiring;
+    expect(expired.value).toEqual([expect.stringContaining("expired before anyone decided")]);
+    expect(expired.calls[0]).toMatchObject({ ok: false, errorCode: "approval_required" });
+
+    const refusing = bridge.run("gh.nuke({});", { executionId: "ref" });
+    await new Promise((r) => setTimeout(r, 5));
+    expect(gate.decide("ref", 1, false)).toBe("decided");
+    const refused = await refusing;
+    expect(refused.value).toEqual([expect.stringContaining("was denied")]);
   });
 
   it("aborts the upstream call when the run is cancelled", async () => {

@@ -74,7 +74,7 @@ The decision reaches the proxy one of three ways:
 - **The `approve` tool.** Otherwise `execute` returns `Paused: execution <id> is waiting for approval of call #<n> ...` and advertises `approve`. The default `approvals.tool: "auto"` only advertises it to clients without elicitation. The model is told to ask you first; the agent examples confirm at the terminal.
 - **An operator channel.** With `approvals.tool: false` the model cannot approve; something that holds the `Proxy` object calls `resume(executionId, seq, allow)`. The chat page and playground do this over HTTP.
 
-The resumed run's result is returned to whoever decided. A denial rejects the call with `approval_required`, which the script can catch.
+The resumed run's result is returned to whoever decided. A denial rejects the call with `approval_required`, which the script can catch. The message says what happened: "was denied" when a person said no, "the request expired before anyone decided" when the wait ran out, and "no approver is configured" when the proxy has nowhere to ask. The code is the same in all three cases, so a script that only checks `e.code` keeps working.
 
 ## Not there yet
 

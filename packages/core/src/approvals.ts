@@ -22,11 +22,20 @@ export interface PendingApproval {
 
 interface Parked {
   pending: PendingApproval;
-  resolve: (allow: boolean) => void;
+  resolve: (decision: ApprovalDecision) => void;
   timer: NodeJS.Timeout;
 }
 
 export type DecideResult = "decided" | "not_found" | "forbidden";
+
+/** Why a call was not allowed: a person said no, or nobody answered before `expiresAt`. */
+export type ApprovalReason = "denied" | "expired";
+
+/** The outcome of one approval request. `reason` is set only when `allow` is false. */
+export interface ApprovalDecision {
+  allow: boolean;
+  reason?: ApprovalReason;
+}
 
 /**
  * Parks a tool call until a human decides. The execution's state is the sandbox itself: the guest
@@ -43,8 +52,11 @@ export class ApprovalGate {
     private readonly operatorRoles: readonly string[] = ["operator"],
   ) {}
 
-  /** The handler `BridgeHost` calls. Resolves when `decide` is called or the request expires (as a denial). */
-  request = (req: ApprovalRequest): Promise<boolean> =>
+  /**
+   * The handler `BridgeHost` calls. Resolves when `decide` is called, or with `reason: "expired"` when
+   * nobody decides before `expiresAt`, so the script can tell a refusal from an unanswered request.
+   */
+  request = (req: ApprovalRequest): Promise<ApprovalDecision> =>
     new Promise((resolve) => {
       const key = ApprovalGate.key(req.executionId, req.seq);
       const now = Date.now();
@@ -57,7 +69,7 @@ export class ApprovalGate {
         requestedAt: new Date(now).toISOString(),
         expiresAt: new Date(now + this.timeoutMs).toISOString(),
       };
-      const timer = setTimeout(() => this.decide(req.executionId, req.seq, false), this.timeoutMs);
+      const timer = setTimeout(() => this.settle(key, { allow: false, reason: "expired" }), this.timeoutMs);
       timer.unref?.();
       this.parked.set(key, { pending, resolve, timer });
       for (const l of this.listeners) l(pending);
@@ -72,10 +84,16 @@ export class ApprovalGate {
     const entry = this.parked.get(key);
     if (!entry) return "not_found";
     if (by && entry.pending.principal && by.id !== entry.pending.principal && !this.isOperator(by)) return "forbidden";
+    this.settle(key, allow ? { allow: true } : { allow: false, reason: "denied" });
+    return "decided";
+  }
+
+  private settle(key: string, decision: ApprovalDecision): void {
+    const entry = this.parked.get(key);
+    if (!entry) return;
     clearTimeout(entry.timer);
     this.parked.delete(key);
-    entry.resolve(allow);
-    return "decided";
+    entry.resolve(decision);
   }
 
   list(executionId?: string): PendingApproval[] {

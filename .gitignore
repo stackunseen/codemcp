@@ -13,3 +13,4 @@ examples/benchmark/results/.memory.json
 .env
 .env.*
 promo-posts.md
+reddit/

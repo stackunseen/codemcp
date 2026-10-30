@@ -7,7 +7,7 @@ import { CodeNormalizer, type NormalizeResult } from "../normalize.js";
 import { PinStore } from "../pins.js";
 import { Policy } from "../policy.js";
 import type { ToolRegistry } from "../registry.js";
-import type { ApprovalRequest } from "../approvals.js";
+import type { ApprovalDecision, ApprovalRequest } from "../approvals.js";
 import type { Principal } from "../identity.js";
 import { stripUndefined, type CallRecord, type ExecuteLimits, type ExecuteResult, type ExecutionErrorCode, type Executor, type HostFunction, type JsonValue, type LogEntry, type ToolDescriptor } from "../types.js";
 import { asBridgeError, BridgeCallError, toPlainJson } from "./protocol.js";
@@ -24,8 +24,12 @@ export interface UpstreamCallContext {
 /** Forwards an approved, validated call to the upstream server. Owned by the proxy, which holds credentials. */
 export type UpstreamCaller = (tool: ToolDescriptor, args: JsonValue, ctx: UpstreamCallContext) => Promise<JsonValue>;
 
-/** Ask a human whether this call may proceed. Resolve `true` to allow; `false` or a rejection denies. */
-export type ApprovalHandler = (request: ApprovalRequest) => Promise<boolean>;
+/**
+ * Ask a human whether this call may proceed. Resolve `true` or `{ allow: true }` to allow. `false`, a rejection,
+ * or `{ allow: false }` denies; give a `reason` so the script's error says whether a person refused or the
+ * request expired unanswered.
+ */
+export type ApprovalHandler = (request: ApprovalRequest) => Promise<boolean | ApprovalDecision>;
 
 export interface BridgeHostOptions {
   registry: ToolRegistry;
@@ -179,8 +183,9 @@ export class BridgeHost {
     record.decision = this.opts.policy.decide(tool, principal);
     if (record.decision === "deny") throw new BridgeCallError("policy_denied", `Policy denies ${tool.qualifiedName}`);
     if (record.decision === "approve") {
-      const ok = this.opts.approvals ? await this.opts.approvals({ executionId, seq: record.seq, tool, args, ...(principal ? { principal } : {}) }).catch(() => false) : false;
-      if (!ok) throw new BridgeCallError("approval_required", `Call to ${tool.qualifiedName} requires approval and was not approved`);
+      const outcome = this.opts.approvals ? await this.opts.approvals({ executionId, seq: record.seq, tool, args, ...(principal ? { principal } : {}) }).catch(() => false) : false;
+      const decision: ApprovalDecision = typeof outcome === "boolean" ? { allow: outcome } : outcome;
+      if (!decision.allow) throw new BridgeCallError("approval_required", approvalMessage(tool.qualifiedName, decision.reason, this.opts.approvals !== undefined));
     }
 
     // Validate before spending budget so an argument mistake does not cost a retry.
@@ -284,6 +289,14 @@ export class BridgeHost {
 function withError(result: ExecuteResult, error: NonNullable<ExecuteResult["error"]>): ExecuteResult {
   const { value: _dropped, ...rest } = result;
   return { ...rest, status: "error", error };
+}
+
+/** One message per way a call can fail approval, so a script can tell them apart. The code is always `approval_required`. */
+function approvalMessage(tool: string, reason: ApprovalDecision["reason"], hasHandler: boolean): string {
+  if (reason === "expired") return `Call to ${tool} requires approval and the request expired before anyone decided`;
+  if (reason === "denied") return `Call to ${tool} requires approval and was denied`;
+  if (!hasHandler) return `Call to ${tool} requires approval and no approver is configured`;
+  return `Call to ${tool} requires approval and was not approved`;
 }
 
 function iso(ms: number = Date.now()): string {

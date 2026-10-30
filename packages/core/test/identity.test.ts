@@ -68,7 +68,7 @@ describe("approval gate with principals", () => {
     expect(gate.decide("e1", 1, true, { id: "bo" })).toBe("forbidden");
     expect(gate.decide("e1", 9, true, { id: "ada" })).toBe("not_found");
     expect(gate.decide("e1", 1, true, { id: "root", roles: ["operator"] })).toBe("decided");
-    expect(await decision).toBe(true);
+    expect(await decision).toEqual({ allow: true });
   });
 });
 
