@@ -48,6 +48,11 @@ if (cmd === "current") {
     pkg.version = to;
     writeFileSync(m, JSON.stringify(pkg, null, 2) + "\n");
   }
+  // The MCP registry listing names the same version twice: the server and its npm package.
+  const listing = read(join(root, "server.json"));
+  listing.version = to;
+  for (const p of listing.packages ?? []) p.version = to;
+  writeFileSync(join(root, "server.json"), JSON.stringify(listing, null, 2) + "\n");
   console.log(to);
 } else {
   console.error("usage: release.mjs current | bump <patch|minor|major|prerelease|x.y.z>");

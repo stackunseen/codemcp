@@ -11,8 +11,10 @@ codemcp is pre-alpha. This page says what you can rely on today and what you can
 - **Limits are enforced from outside the guest.** Call, per-result, total and return byte budgets; memory, stack and deadline; a worker heap cap. The guest clock stops while waiting on the host.
 - **No credential enters the sandbox.** There is no process, env, filesystem or network inside. Each upstream holds its own transport, env and headers, and a missing `${VAR}` fails at startup.
 - **Approvals park the script.** The suspended worker is the state. A decision is keyed by execution id and call number and arrives through elicitation, the `approve` tool or an operator channel. A denial is catchable.
-- **Pinned definitions.** The hash covers name, description, schemas and annotations. Drift is fatal at call time and logged.
+- **Pinned definitions.** The hash covers name, description, schemas and annotations. Drift is fatal at call time and logged. The pin file keeps the approved definition, so `codemcp approve` shows a diff of what changed before it re-pins, and `--dry-run` shows it without pinning.
+- **Tool text is cleaned before the model sees it.** Control and invisible characters are removed and descriptions longer than 2000 characters are cut, in the tool description, the schema descriptions and the title. Each edit is logged and shown by `codemcp tools`. Turn it off with `descriptions.clean: false`.
 - **Formatting repair.** Fences, wrappers and literal newlines are fixed, TypeScript is erased, and the syntax is checked before a worker is spawned.
+- **Errors carry a line number.** Syntax and runtime errors name the line and column in the code the model wrote, counted past any fence or wrapper that was stripped. An error raised inside the bridge itself has no script frame and reports none.
 - **Audit.** JSONL per execution and per call, with decision, bytes, duration and trace context, to a file, stderr, a webhook or your own callback.
 - **Identity.** A pluggable provider (`local`, `static`, `trusted-header`) resolves a principal that policy, approvals and audit all key on.
 - **Portable executor contract** with a 30-case conformance suite driven from `spec/`.
@@ -29,14 +31,12 @@ Things to know before you depend on codemcp:
 - **No OAuth for upstream HTTP servers.** Hosted servers that need an interactive login are unreachable until that lands; use a pre-issued token in `headers`.
 - **Upstream elicitation, sampling and roots are refused.** Resources and prompts are not proxied.
 - **Passthrough flattens results to text.** `structuredContent`, images and resource links are lost on that path.
-- **New tools are pinned on first use**, including ones a server adds later, and `codemcp approve` shows no diff yet. Review the pin file for remote servers you do not control.
-- **Tool descriptions reach the model unfiltered.** No length cap or control-character stripping yet.
+- **New tools are pinned on first use**, including ones a server adds later. Run with `--strict` or set `pins.autoApproveNew: false` for remote servers you do not control, then review with `codemcp approve --dry-run`.
 - **Return types are mostly `Promise<unknown>`**, because few servers ship an `outputSchema`. Results that parse as JSON are returned as objects, the rest as strings.
-- **Runtime errors carry no line number.**
 - **No state between executions.** A second pass refetches and spends the budget again.
 - **Stdio only.** One proxy process per client, and every upstream is respawned when the client restarts.
 - **Startup cost.** Worker plus WASM startup is about 120 ms per `execute`.
 
 ## What is next
 
-The order of work is in [ROADMAP.md](ROADMAP.md). The next items are description hygiene and manual pinning with diffs for remote servers, structured results through passthrough and `execute`, and the migration to the MCP TypeScript SDK v2, which unblocks upstream elicitation, resources, OAuth and an HTTP server mode.
+The order of work is in [ROADMAP.md](ROADMAP.md). The next items are structured results through passthrough and `execute`, and the migration to the MCP TypeScript SDK v2, which unblocks upstream elicitation, resources, OAuth and an HTTP server mode.

@@ -1,6 +1,7 @@
 {
   "name": "codemcp-cli",
   "version": "0.3.0",
+  "mcpName": "io.github.stackunseen/codemcp",
   "description": "codemcp CLI and MCP server: one MCP server in front of all your MCP servers, exposing search / describe / execute.",
   "license": "Apache-2.0",
   "repository": {

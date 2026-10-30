@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.stackunseen/codemcp",
+  "title": "codemcp",
+  "description": "Code mode for MCP: search, describe and execute over all your servers, with a sandbox and approvals.",
+  "repository": {
+    "url": "https://github.com/stackunseen/codemcp",
+    "source": "github",
+    "subfolder": "packages/proxy"
+  },
+  "version": "0.3.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "codemcp-cli",
+      "version": "0.3.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "serve",
+          "description": "Run the proxy over stdio"
+        },
+        {
+          "type": "named",
+          "name": "--config",
+          "valueHint": "path",
+          "description": "Path to codemcp.config.json; defaults to ./codemcp.config.json then ~/.codemcp/config.json",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
