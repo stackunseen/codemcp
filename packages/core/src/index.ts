@@ -5,6 +5,8 @@ export * from "./naming.js";
 export * from "./hash.js";
 export * from "./fs.js";
 export * from "./registry.js";
+export * from "./hygiene.js";
+export * from "./diff.js";
 export * from "./codegen/typescript.js";
 export * from "./search.js";
 export * from "./policy.js";

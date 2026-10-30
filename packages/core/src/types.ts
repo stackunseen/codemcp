@@ -36,6 +36,8 @@ export interface ToolDescriptor extends UpstreamTool {
   stubKey: string;
   /** sha256 over name, description and input schema; used for pinning. */
   descriptionHash: string;
+  /** Edits description hygiene made to this tool's text before the model saw it. Absent when nothing changed. */
+  hygiene?: string[];
 }
 
 export type PolicyDecision = "allow" | "deny" | "approve";
@@ -75,6 +77,9 @@ export interface ExecutionError {
   message: string;
   /** Guest stack trace if the executor can provide one. */
   stack?: string;
+  /** 1-based line in the script where the error was raised, when the executor can tell. */
+  line?: number;
+  column?: number;
 }
 
 export interface ExecuteResult {

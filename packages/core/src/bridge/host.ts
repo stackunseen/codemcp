@@ -149,6 +149,7 @@ export class BridgeHost {
     }
     result.calls = calls;
     result.durationMs = Date.now() - started;
+    if (result.error?.line !== undefined) result.error = locateInInput(result.error, normalized.lineOffset);
 
     if (fatal) {
       result = withError(result, { code: fatal.code as ExecutionErrorCode, message: fatal.message });
@@ -284,6 +285,13 @@ export class BridgeHost {
       // A sink that fails to flush has already reported it through write(); nothing more to do at the end of a run.
     }
   }
+}
+
+/** Shift the executor's line past whatever the normalizer removed, and say it in the message so every reader sees it. */
+function locateInInput(error: NonNullable<ExecuteResult["error"]>, lineOffset: number): NonNullable<ExecuteResult["error"]> {
+  const line = (error.line ?? 0) + lineOffset;
+  const where = error.column !== undefined ? `line ${line}, column ${error.column}` : `line ${line}`;
+  return { ...error, line, message: error.message.includes(`(${where})`) ? error.message : `${error.message} (${where})` };
 }
 
 function withError(result: ExecuteResult, error: NonNullable<ExecuteResult["error"]>): ExecuteResult {

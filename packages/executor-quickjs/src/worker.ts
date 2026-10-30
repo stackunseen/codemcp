@@ -5,6 +5,9 @@ import { GUEST_PRELUDE } from "./guest-prelude.js";
 import type { HostToWorker, WorkerInput, WorkerToHost } from "./messages.js";
 
 const TIMEOUT: ExecutionError = { code: "timeout", message: "Execution exceeded its time limit" };
+const SCRIPT_FILE = "codemcp-script.js";
+/** Lines in front of the script body: the prelude and the `(async () => {` wrapper line. */
+const BODY_LINE_OFFSET = `${GUEST_PRELUDE}\n${CodeNormalizer.wrap("")}`.split("\n").length - 2;
 const DANGLING: ExecutionError = { code: "runtime_error", message: "Script is waiting on a promise that will never settle (only tool calls and sleep are asynchronous in the sandbox)" };
 
 interface Reply {
@@ -54,7 +57,7 @@ class QuickJsSandbox {
     this.vm = this.runtime.newContext();
     this.installHostFunctions();
 
-    const evaluated = this.vm.evalCode(`${GUEST_PRELUDE}\n${CodeNormalizer.wrap(this.input.code)}`, "codemcp-script.js", { type: "global" });
+    const evaluated = this.vm.evalCode(`${GUEST_PRELUDE}\n${CodeNormalizer.wrap(this.input.code)}`, SCRIPT_FILE, { type: "global" });
     if (evaluated.error) {
       this.fail(this.classify(this.dumpError(evaluated.error)));
       evaluated.error.dispose();
@@ -176,7 +179,18 @@ class QuickJsSandbox {
     if (err.name === "InternalError" && /out of memory/i.test(err.message ?? "")) return { code: "memory_limit", message: "Execution exceeded its memory limit", ...stack };
     if (err.name === "InternalError" && /stack overflow/i.test(err.message ?? "")) return { code: "stack_overflow", message: "Execution exceeded its stack limit", ...stack };
     if (err.name === "SyntaxError") return { code: "syntax_error", message, ...stack };
-    return { code: "runtime_error", message, ...stack };
+    return { code: "runtime_error", message, ...stack, ...QuickJsSandbox.locate(err.stack) };
+  }
+
+  /** The script line of the innermost frame, mapped past the prelude and wrapper. Frames inside the prelude give nothing. */
+  private static locate(stack: string | undefined): { line: number; column: number } | Record<string, never> {
+    if (!stack) return {};
+    const re = new RegExp(`\\(${SCRIPT_FILE}:(\\d+):(\\d+)\\)`, "g");
+    for (const m of stack.matchAll(re)) {
+      const line = Number(m[1]) - BODY_LINE_OFFSET;
+      if (line >= 1) return { line, column: Number(m[2]) };
+    }
+    return {};
   }
 
   private dumpError(handle: QuickJSHandle): { name?: string; message?: string; stack?: string } {

@@ -118,6 +118,15 @@
       "additionalProperties": false,
       "properties": { "rootName": { "type": "string", "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$" } }
     },
+    "descriptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Cleaning of tool text from upstream servers before it reaches the model. On by default.",
+      "properties": {
+        "clean": { "type": "boolean", "description": "Remove control and invisible characters and cut long descriptions. Default true. Pin hashes are computed on the cleaned text." },
+        "maxLength": { "type": "integer", "minimum": 1, "description": "Longest description kept, in characters. Default 2000." }
+      }
+    },
     "identity": {
       "oneOf": [
         { "type": "object", "additionalProperties": false, "properties": { "mode": { "const": "local" } } },

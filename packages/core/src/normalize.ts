@@ -5,6 +5,11 @@ export interface NormalizeResult {
   code: string;
   /** What was changed, for the audit log. */
   fixes: string[];
+  /**
+   * Lines removed before the body (a fence line, a wrapper line, leading blank lines). Add it to a line
+   * number in `code` to get the line in the input the model wrote.
+   */
+  lineOffset: number;
 }
 
 /**
@@ -21,13 +26,13 @@ export class CodeNormalizer {
     return `(async () => {\n${body}\n})()`;
   }
 
-  /** Throws a SyntaxError (with a line number relative to the body) when the body does not parse. */
-  static assertParses(body: string): void {
+  /** Throws a SyntaxError (with a line number relative to the body, shifted by `lineOffset`) when the body does not parse. */
+  static assertParses(body: string, lineOffset = 0): void {
     try {
       parse(CodeNormalizer.wrap(body), { ecmaVersion: "latest", sourceType: "script" });
     } catch (err) {
       const e = err as Error & { loc?: { line: number; column: number } };
-      const where = e.loc ? ` (line ${Math.max(1, e.loc.line - 1)}, column ${e.loc.column})` : "";
+      const where = e.loc ? ` (line ${Math.max(1, e.loc.line - 1) + lineOffset}, column ${e.loc.column})` : "";
       throw new SyntaxError(`${e.message.replace(/\s*\(\d+:\d+\)\s*$/, "")}${where}`);
     }
   }
@@ -35,9 +40,15 @@ export class CodeNormalizer {
   normalize(input: string): NormalizeResult {
     const fixes: string[] = [];
     let code = input.replace(/\r\n/g, "\n");
+    let lineOffset = 0;
+    // Lines dropped in front of the captured body, so error lines can be mapped back to the input.
+    const dropBefore = (whole: string, body: string): void => {
+      lineOffset += whole.slice(0, whole.indexOf(body)).split("\n").length - 1;
+    };
 
     const fence = CodeNormalizer.FENCE.exec(code);
     if (fence?.[1] !== undefined) {
+      dropBefore(code, fence[1]);
       code = fence[1];
       fixes.push("stripped markdown fence");
     }
@@ -50,13 +61,16 @@ export class CodeNormalizer {
 
     const wrapped = CodeNormalizer.ASYNC_WRAPPER.exec(code);
     if (wrapped?.[1] !== undefined) {
+      dropBefore(code, wrapped[1]);
       code = wrapped[1];
       fixes.push("unwrapped async function wrapper");
     }
 
-    code = CodeNormalizer.stripTypeScript(code.trim(), fixes);
-    CodeNormalizer.assertParses(code);
-    return { code, fixes };
+    const trimmed = code.trim();
+    dropBefore(code, trimmed);
+    code = CodeNormalizer.stripTypeScript(trimmed, fixes);
+    CodeNormalizer.assertParses(code, lineOffset);
+    return { code, fixes, lineOffset };
   }
 
   /**

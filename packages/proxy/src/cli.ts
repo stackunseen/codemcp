@@ -13,7 +13,7 @@ Usage:
   codemcp import  [--config <path>] [--write]      Discover servers from Claude Code, Cursor, VS Code, Claude Desktop, Windsurf, Codex
   codemcp tools   [--config <path>]                Connect and list every tool with its pin status
   codemcp stubs   [--config <path>] [--detail names|signatures|full]
-  codemcp approve [--config <path>]                Pin every new or changed tool definition after you have reviewed them
+  codemcp approve [--config <path>] [--dry-run]    Show what changed in every drifted tool, then pin new and changed definitions
   codemcp --help
 
 Config is read from ./${CONFIG_FILENAME} or ~/.codemcp/config.json.
@@ -22,6 +22,7 @@ Config is read from ./${CONFIG_FILENAME} or ~/.codemcp/config.json.
 interface Flags {
   config?: string;
   write: boolean;
+  dryRun: boolean;
   strict: boolean;
   detail: string;
   help: boolean;
@@ -43,12 +44,13 @@ export class Cli {
       options: {
         config: { type: "string", short: "c" },
         write: { type: "boolean", default: false },
+        "dry-run": { type: "boolean", default: false },
         strict: { type: "boolean", default: false },
         detail: { type: "string", default: "signatures" },
         help: { type: "boolean", short: "h", default: false },
       },
     });
-    const flags = values as Flags;
+    const flags = { ...values, dryRun: values["dry-run"] } as Flags;
     const command = positionals[0];
     if (flags.help || !command) {
       this.out(USAGE);
@@ -65,7 +67,7 @@ export class Cli {
       case "stubs":
         return this.stubs(config, flags.detail);
       case "approve":
-        return this.approve(config);
+        return this.approve(config, flags.dryRun);
       default:
         this.err(`Unknown command: ${command}\n\n${USAGE}`);
         return 1;
@@ -111,7 +113,7 @@ export class Cli {
       for (const s of proxy.serverStatus()) this.out(`${s.state.padEnd(14)} ${s.name}${s.state === "connected" ? `  ${s.tools} tools` : `  ${s.error ?? ""}`}\n`);
       this.out("\n");
       for (const t of proxy.registry.list()) {
-        const flags = [t.annotations?.readOnlyHint ? "ro" : "", t.annotations?.destructiveHint ? "DESTRUCTIVE" : ""].filter(Boolean).join(",");
+        const flags = [t.annotations?.readOnlyHint ? "ro" : "", t.annotations?.destructiveHint ? "DESTRUCTIVE" : "", t.hygiene ? "cleaned" : ""].filter(Boolean).join(",");
         this.out(`${proxy.pins.check(t).status.padEnd(8)} ${t.qualifiedName}${flags ? `  [${flags}]` : ""}\n`);
       }
       this.out(`\n${proxy.registry.size} tools, ${proxy.pins.size} pinned; identity: ${proxy.identity.name}\n`);
@@ -124,13 +126,26 @@ export class Cli {
     });
   }
 
-  private approve(config: CodemcpConfig): Promise<number> {
+  private approve(config: CodemcpConfig, dryRun: boolean): Promise<number> {
     return this.withProxy(
       config,
       async (proxy) => {
-        const { approved } = proxy.pins.approveAll(proxy.registry.list(), { includeDrifted: true });
+        const tools = proxy.registry.list();
+        const fresh = tools.filter((t) => proxy.pins.check(t).status === "new");
+        const drifted = tools.filter((t) => proxy.pins.check(t).status === "drifted");
+        for (const t of drifted) {
+          const diff = proxy.pins.diff(t);
+          this.out(`\n${t.qualifiedName} changed since it was pinned:\n`);
+          this.out(diff === undefined ? "  (the previous pin stored only a hash; the full definition will be stored from now on)\n" : `${diff}\n`);
+        }
+        if (fresh.length) this.out(`\n${fresh.length} new: ${fresh.map((t) => t.qualifiedName).join(", ")}\n`);
+        if (dryRun) {
+          this.out(`\nDry run: ${fresh.length} new and ${drifted.length} changed definitions would be pinned.\n`);
+          return;
+        }
+        const { approved } = proxy.pins.approveAll(tools, { includeDrifted: true });
         await proxy.pins.save();
-        this.out(`Pinned ${approved.length} tool definitions (${proxy.pins.size} total)\n`);
+        this.out(`\nPinned ${approved.length} tool definitions (${proxy.pins.size} total)\n`);
       },
       { autoApproveNew: false },
     );

@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { DEFAULT_ROOT_NAME, readJsonFile, SERVER_NAME_RE, type BudgetConfig, type ExecuteLimits, type HttpSinkOptions, type PolicyConfig, type Principal } from "codemcp-core";
+import { DEFAULT_ROOT_NAME, readJsonFile, SERVER_NAME_RE, type BudgetConfig, type DescriptionHygiene, type ExecuteLimits, type HttpSinkOptions, type PolicyConfig, type Principal } from "codemcp-core";
 
 export interface StdioServerConfig {
   command: string;
@@ -54,6 +54,17 @@ export interface CodemcpConfig {
   };
   stubs?: { rootName?: string };
   /**
+   * Tool text from upstream servers goes to the model as stub doc comments. By default it is cleaned first:
+   * control and invisible characters are removed and long descriptions are cut. Pin hashes are computed
+   * on the cleaned text. Set `clean: false` to pass every description through exactly as the server sent it.
+   */
+  descriptions?: {
+    /** Default true. */
+    clean?: boolean;
+    /** Longest description kept, in characters. Default 2000. */
+    maxLength?: number;
+  };
+  /**
    * Who requests act for. `local` (default) is the OS user that launched the proxy and only works over
    * stdio. `static` maps bearer tokens from this file to principals. `trusted-header` trusts a header set
    * by a gateway in front of the proxy. Requests without a resolvable principal are refused.
@@ -89,6 +100,8 @@ export interface ResolvedConfig extends CodemcpConfig {
   pinsFile: string | undefined;
   autoApproveNew: boolean;
   rootName: string;
+  /** `false` when the user turned cleaning off. */
+  descriptionHygiene: DescriptionHygiene | false;
   approvalsTool: boolean | "auto";
   approvalTimeoutMs: number;
   operatorRoles: string[];
@@ -186,6 +199,7 @@ export class ConfigLoader {
       pinsFile: config.pins?.file === false ? undefined : (config.pins?.file ?? join(home, "pins.json")),
       autoApproveNew: config.pins?.autoApproveNew ?? true,
       rootName: config.stubs?.rootName ?? DEFAULT_ROOT_NAME,
+      descriptionHygiene: config.descriptions?.clean === false ? false : { ...(config.descriptions?.maxLength !== undefined ? { maxLength: config.descriptions.maxLength } : {}) },
       approvalsTool: config.approvals?.tool ?? "auto",
       approvalTimeoutMs: config.approvals?.timeoutMs ?? 10 * 60_000,
       operatorRoles: config.approvals?.operatorRoles ?? ["operator"],

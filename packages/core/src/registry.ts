@@ -1,4 +1,5 @@
 import { descriptionHash } from "./hash.js";
+import { cleanTool, type DescriptionHygiene } from "./hygiene.js";
 import { sanitizeIdentifier } from "./naming.js";
 import type { ToolDescriptor, UpstreamTool } from "./types.js";
 
@@ -12,6 +13,9 @@ export class ToolRegistry {
   private readonly byStubKey = new Map<string, ToolDescriptor>();
   private sorted: ToolDescriptor[] | undefined;
 
+  /** `hygiene: false` passes tool text through untouched; the default cleans it (see `DescriptionHygiene`). */
+  constructor(private readonly options: { hygiene?: DescriptionHygiene | false } = {}) {}
+
   /** Replace every tool for `server` with `upstream`. Returns the registered descriptors. */
   setServerTools(server: string, upstream: UpstreamTool[]): ToolDescriptor[] {
     this.removeServer(server);
@@ -20,9 +24,12 @@ export class ToolRegistry {
     const out: ToolDescriptor[] = [];
     // Tools whose upstream name already is a valid identifier claim it first, so `a_b` is never displaced by `a-b`.
     const candidates = upstream
-      .map((tool) => ({ tool, id: sanitizeIdentifier(tool.name) }))
+      .map((raw) => {
+        const cleaned = this.options.hygiene === false ? { value: raw, changes: [] } : cleanTool(raw, this.options.hygiene ?? {});
+        return { tool: cleaned.value, changes: cleaned.changes, id: sanitizeIdentifier(raw.name) };
+      })
       .sort((a, b) => Number(a.id !== a.tool.name) - Number(b.id !== b.tool.name) || a.tool.name.localeCompare(b.tool.name));
-    for (const { tool, id } of candidates) {
+    for (const { tool, changes, id } of candidates) {
       let stubName = id;
       // Two distinct upstream names may sanitize to the same identifier; disambiguate deterministically.
       for (let i = 2; used.has(stubName); i++) stubName = `${id}_${i}`;
@@ -35,6 +42,7 @@ export class ToolRegistry {
         qualifiedName: `${server}.${tool.name}`,
         stubKey: `${ns}.${stubName}`,
         descriptionHash: descriptionHash(tool),
+        ...(changes.length ? { hygiene: changes } : {}),
       };
       this.byQualified.set(descriptor.qualifiedName, descriptor);
       this.byStubKey.set(descriptor.stubKey, descriptor);

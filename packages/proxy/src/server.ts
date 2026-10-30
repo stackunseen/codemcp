@@ -82,7 +82,7 @@ function classifyConnectError(err: Error): ServerState {
  * `resume()` (from the `approve` tool, a UI, or any other operator channel) in a separate request.
  */
 export class Proxy {
-  readonly registry = new ToolRegistry();
+  readonly registry: ToolRegistry;
   readonly search = new ToolSearch();
   readonly pins: PinStore;
   readonly server: Server;
@@ -102,6 +102,7 @@ export class Proxy {
 
   constructor(options: ProxyOptions) {
     this.config = ConfigLoader.resolve(options.config);
+    this.registry = new ToolRegistry({ hygiene: this.config.descriptionHygiene });
     this.stubs = new StubGenerator(this.config.rootName);
     this.log = options.log ?? ((m) => process.stderr.write(`${m}\n`));
     this.autoApproveNew = options.autoApproveNew ?? this.config.autoApproveNew;
@@ -246,6 +247,7 @@ export class Proxy {
           try {
             const tools = this.registry.setServerTools(name, await up.listTools());
             this.status.set(name, { name, state: "connected", tools: tools.length });
+            for (const t of tools) if (t.hygiene) this.log(`[codemcp] cleaned ${t.qualifiedName}: ${t.hygiene.join("; ")}`);
           } catch (err) {
             this.status.set(name, { name, state: "listing_failed", tools: 0, error: (err as Error).message });
             this.log(`[codemcp] failed to list tools for "${name}": ${(err as Error).message}`);
