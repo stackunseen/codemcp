@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { Server, type ServerContext, type Tool } from "@modelcontextprotocol/server";
+import { randomBytes, randomUUID } from "node:crypto";
+import { CLIENT_CAPABILITIES_META_KEY, createRequestStateCodec, inputRequired, inputResponse, Server, type ElicitRequestFormParams, type RequestStateCodec, type ServerContext, type Tool } from "@modelcontextprotocol/server";
 import {
   ApprovalGate,
   BridgeHost,
@@ -22,8 +22,6 @@ import {
   SURFACE,
   ToolRegistry,
   ToolSearch,
-  type ApprovalDecision,
-  type ApprovalRequest,
   type AuditEvent,
   type AuditSink,
   type ExecuteResult,
@@ -56,6 +54,21 @@ export interface ProxyOptions {
 }
 
 const APPROVE_TOOL = "approve";
+/** Key of the approval question inside an `input_required` result. */
+const APPROVAL_INPUT = "approval";
+/** Approval rounds one `execute` may ask for over a 2025 connection; one per gated call, so match the default call budget. */
+const APPROVAL_ROUNDS = 64;
+const DECISION_SCHEMA: ElicitRequestFormParams["requestedSchema"] = {
+  type: "object",
+  properties: { decision: { type: "string", enum: ["allow", "deny"], title: "Decision", description: "allow runs the call; deny rejects it and the script continues" } },
+  required: ["decision"],
+};
+
+/** What an approval round carries through the client, sealed by `approvalState`. */
+interface ApprovalState {
+  executionId: string;
+  seq: number;
+}
 
 export type ServerState = "connected" | "auth_failed" | "unreachable" | "listing_failed";
 
@@ -63,6 +76,8 @@ export interface ServerStatus {
   name: string;
   state: ServerState;
   tools: number;
+  /** The protocol era the connection negotiated, once connected. */
+  era?: string;
   error?: string;
 }
 
@@ -75,20 +90,29 @@ function classifyConnectError(err: Error): ServerState {
  * The codemcp proxy: connects upstream servers, maintains the registry, and serves one MCP server
  * exposing `search`, `describe`, `execute` plus any configured passthrough tools.
  *
- * Human approval: a call that needs one parks the sandbox. If the client supports elicitation the
- * human is asked through it and the execution continues in the same request. Otherwise `execute`
- * returns "paused" with the execution id and call number, and the run is resumed later through
- * `resume()` (from the `approve` tool, a UI, or any other operator channel) in a separate request.
+ * Human approval: a call that needs one parks the sandbox. If the client supports elicitation, `execute`
+ * answers `input_required` with the question and a sealed `{executionId, seq}`; the client's retry carries
+ * the answer, and the run continues. That is the 2026-07-28 flow; on 2025 connections the SDK plays the
+ * same rounds as server-to-client requests inside one call. Otherwise `execute` returns "paused" with the
+ * execution id and call number, and the run is resumed later through `resume()` (from the `approve` tool,
+ * a UI, or any other operator channel) in a separate request.
+ *
+ * One `Proxy` serves any number of MCP connections: `createServer()` builds a server per connection, and
+ * every one shares the registry, runs and approvals.
  */
 export class Proxy {
   readonly registry: ToolRegistry;
   readonly search = new ToolSearch();
   readonly pins: PinStore;
+  /** A server built at construction, for hosts that connect one transport themselves. */
   readonly server: Server;
   readonly config: ResolvedConfig;
   readonly gate: ApprovalGate;
   readonly identity: IdentityProvider;
   private readonly upstreams = new Map<string, Upstream>();
+  private readonly servers = new Set<Server>();
+  /** Seals approval state that round-trips through the client; the key never leaves this process, nor do the runs it names. */
+  private readonly approvalState: RequestStateCodec<ApprovalState>;
   private readonly status = new Map<string, ServerStatus>();
   private readonly bridge: BridgeHost;
   private readonly stubs: StubGenerator;
@@ -122,12 +146,36 @@ export class Proxy {
       auditCode: this.config.auditIncludeCode,
       auditResults: this.config.auditIncludeResults,
       limits: this.config.limits,
-      approvals: (req) => this.askHuman(req),
+      // Every approval parks; the request that started the run decides how the human is asked.
+      approvals: (req) => this.gate.request(req),
     });
-    this.server = new Server({ name: "codemcp", version: "0.0.1" }, { capabilities: { tools: { listChanged: true } } });
-    // Built per request: whether `approve` is advertised depends on the connected client's capabilities.
-    this.server.setRequestHandler("tools/list", async () => ({ tools: this.listTools() }));
-    this.server.setRequestHandler("tools/call", async (req, ctx) => {
+    this.approvalState = createRequestStateCodec<ApprovalState>({
+      key: randomBytes(32),
+      ttlSeconds: Math.ceil(this.config.approvalTimeoutMs / 1000),
+      bind: (ctx) => ctx.mcpReq.method,
+    });
+    this.server = this.createServer();
+  }
+
+  /**
+   * Build one MCP server. `serveStdio` and HTTP hosting call this per connection (and once more for a discarded
+   * era probe); hosts that wire a single transport use `server`.
+   */
+  createServer(): Server {
+    const server = new Server(
+      { name: "codemcp", version: "0.0.1" },
+      {
+        capabilities: { tools: { listChanged: true } },
+        // Approval rounds are human-paced, and one script may need several.
+        inputRequired: { maxRounds: APPROVAL_ROUNDS, roundTimeoutMs: this.config.approvalTimeoutMs },
+        requestState: { verify: this.approvalState.verify },
+      },
+    );
+    this.servers.add(server);
+    server.onclose = () => void this.servers.delete(server);
+    // Built per request: whether `approve` is advertised depends on whether this client can show a form.
+    server.setRequestHandler("tools/list", async (_req, ctx) => ({ tools: this.buildAdvertised(canElicit(server, ctx)) }));
+    server.setRequestHandler("tools/call", async (req, ctx) => {
       const args = (req.params.arguments ?? {}) as Record<string, unknown>;
       const meta = req.params._meta as { traceparent?: string; progressToken?: string | number } | undefined;
       const progress = meta?.progressToken;
@@ -137,6 +185,7 @@ export class Proxy {
         principal,
         traceparent: meta?.traceparent,
         signal: ctx.mcpReq.signal,
+        canElicit: canElicit(server, ctx),
         // Log lines become progress notifications when the client asked for progress.
         onLog:
           progress === undefined
@@ -144,12 +193,16 @@ export class Proxy {
             : (entry: LogEntry) => void ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken: progress, progress: entry.t, message: `[${entry.level}] ${entry.message}` } }).catch(() => undefined),
       };
       try {
-        const outcome = await this.handleTool(req.params.name, args, call);
+        // A retry that carries approval state answers the question the previous round asked.
+        const state = ctx.mcpReq.requestState<ApprovalState>();
+        const outcome = state ? await this.answerApproval(state, ctx, call) : await this.handleTool(req.params.name, args, call);
+        if (outcome.pending && call.canElicit) return this.askForApproval(outcome.pending, ctx);
         return { content: [{ type: "text", text: outcome.text }], isError: outcome.isError };
       } catch (err) {
         return { content: [{ type: "text", text: (err as Error).message }], isError: true };
       }
     });
+    return server;
   }
 
   /** Connect every configured upstream and build the registry. A server that fails is recorded, not fatal. */
@@ -248,7 +301,7 @@ export class Proxy {
           if (!up) return;
           try {
             const tools = this.registry.setServerTools(name, await up.listTools());
-            this.status.set(name, { name, state: "connected", tools: tools.length });
+            this.status.set(name, { name, state: "connected", tools: tools.length, ...(up.era ? { era: up.era } : {}) });
             for (const t of tools) if (t.hygiene) this.log(`[codemcp] cleaned ${t.qualifiedName}: ${t.hygiene.join("; ")}`);
           } catch (err) {
             this.status.set(name, { name, state: "listing_failed", tools: 0, error: (err as Error).message });
@@ -265,7 +318,7 @@ export class Proxy {
       }
       this.rebuildPassthrough();
       this.log(`[codemcp] ${tools.length} tools from ${this.registry.servers().length} servers`);
-      await this.server.sendToolListChanged().catch(() => undefined);
+      await Promise.all([...this.servers].map((s) => s.sendToolListChanged().catch(() => undefined)));
     })().finally(() => {
       this.refreshing = undefined;
     });
@@ -274,17 +327,18 @@ export class Proxy {
 
   async close(): Promise<void> {
     await Promise.all([...this.upstreams.values()].map((u) => u.close()));
-    await this.server.close().catch(() => undefined);
+    await Promise.all([...this.servers].map((s) => s.close().catch(() => undefined)));
   }
 
+  /** The advertised tools as a client without elicitation sees them. */
   listTools(): Tool[] {
-    return this.buildAdvertised();
+    return this.buildAdvertised(false);
   }
 
   /** `approve` is advertised when configured on, or in `auto` mode when the client cannot show an elicitation. */
-  private approveToolExposed(): boolean {
+  private approveToolExposed(canElicit: boolean): boolean {
     const mode = this.config.approvalsTool;
-    return mode === true || (mode === "auto" && !this.server.getClientCapabilities()?.elicitation);
+    return mode === true || (mode === "auto" && !canElicit);
   }
 
   /**
@@ -292,42 +346,41 @@ export class Proxy {
    * This is the operator entry point; the `approve` tool and the playground both call it.
    */
   async resume(executionId: string, seq: number, allow: boolean, by?: Principal): Promise<string> {
-    return (await this.resumeOutcome(executionId, seq, allow, by)).text;
+    return (await this.resumeOutcome(executionId, seq, allow, by, false)).text;
   }
 
-  private async resumeOutcome(executionId: string, seq: number, allow: boolean, by?: Principal): Promise<Outcome> {
+  private async resumeOutcome(executionId: string, seq: number, allow: boolean, by: Principal | undefined, canElicit: boolean): Promise<Outcome> {
     const run = this.parkedRuns.get(executionId);
     if (!run) throw new Error(`No parked execution ${executionId}`);
     const decided = this.gate.decide(executionId, seq, allow, by);
     if (decided === "not_found") throw new Error(`Execution ${executionId} has no call #${seq} waiting for approval`);
     if (decided === "forbidden") throw new Error(`Execution ${executionId} belongs to another principal; only its owner or an operator may decide`);
-    return this.settle(executionId, run);
+    return this.settle(executionId, run, canElicit);
   }
 
-  /** Elicit a decision from the client when it can show one; otherwise park the call for an out-of-band decision. */
-  private async askHuman(req: ApprovalRequest): Promise<ApprovalDecision> {
-    if (this.server.getClientCapabilities()?.elicitation) {
-      try {
-        const shownArgs = JSON.stringify(req.args).slice(0, 500);
-        const res = await this.server.elicitInput(
-          {
-            message: `Allow ${req.tool.qualifiedName}(${shownArgs})? This tool is marked destructive or requires approval.`,
-            requestedSchema: { type: "object", properties: { decision: { type: "string", enum: ["allow", "deny"], title: "Decision", description: "allow runs the call; deny rejects it and the script continues" } }, required: ["decision"] },
-          },
-          // A human is answering: wait as long as a parked approval would, not the SDK's default minute.
-          { timeout: this.config.approvalTimeoutMs },
-        );
-        const allowed = res.action === "accept" && (res.content as { decision?: string } | undefined)?.decision === "allow";
-        return allowed ? { allow: true } : { allow: false, reason: "denied" };
-      } catch (err) {
-        this.log(`[codemcp] elicitation failed (${(err as Error).message}); parking the call instead`);
-      }
-    }
-    return this.gate.request(req);
+  /** Ask the client's human about a parked call: the question, plus sealed state naming the call it is about. */
+  private async askForApproval(p: PendingApproval, ctx: ServerContext) {
+    const shownArgs = JSON.stringify(p.args).slice(0, 500);
+    return inputRequired({
+      inputRequests: {
+        [APPROVAL_INPUT]: inputRequired.elicit({
+          message: `Allow ${p.tool}(${shownArgs})? This tool is marked destructive or requires approval.`,
+          requestedSchema: DECISION_SCHEMA,
+        }),
+      },
+      requestState: await this.approvalState.mint({ executionId: p.executionId, seq: p.seq }, ctx),
+    });
   }
 
-  /** Wait for a run to finish, or return a "paused" message the moment one of its calls parks. */
-  private async settle(executionId: string, run: Promise<ExecuteResult>): Promise<Outcome> {
+  /** Apply the answer a retried request carries. Anything but an explicit "allow", including no answer, denies. */
+  private async answerApproval(state: ApprovalState, ctx: ServerContext, call: CallContext): Promise<Outcome> {
+    const answer = inputResponse(ctx.mcpReq.inputResponses, APPROVAL_INPUT);
+    const allow = answer.kind === "elicit" && answer.action === "accept" && (answer.content as { decision?: unknown } | undefined)?.decision === "allow";
+    return this.resumeOutcome(state.executionId, state.seq, allow, call.principal, call.canElicit);
+  }
+
+  /** Wait for a run to finish, or return a "paused" outcome the moment one of its calls parks. */
+  private async settle(executionId: string, run: Promise<ExecuteResult>, canElicit: boolean): Promise<Outcome> {
     const pending = this.gate.nextPending(executionId);
     try {
       const outcome = await Promise.race([run.then((r) => ({ done: r })), pending.promise.then((p) => ({ paused: p }))]);
@@ -336,14 +389,14 @@ export class Proxy {
         return { text: formatResult(outcome.done), isError: outcome.done.status === "error" };
       }
       this.parkedRuns.set(executionId, run);
-      return { text: this.pausedMessage(outcome.paused), isError: false };
+      return { text: this.pausedMessage(outcome.paused, canElicit), isError: false, pending: outcome.paused };
     } finally {
       pending.cancel();
     }
   }
 
-  private pausedMessage(p: PendingApproval): string {
-    const how = this.approveToolExposed()
+  private pausedMessage(p: PendingApproval, canElicit: boolean): string {
+    const how = this.approveToolExposed(canElicit)
       ? `Ask the user, then call ${APPROVE_TOOL} with {"executionId":"${p.executionId}","seq":${p.seq},"allow":true|false}.`
       : `A human must approve it out of band (operator UI or CLI); you cannot approve it yourself.`;
     return `Paused: execution ${p.executionId} is waiting for approval of call #${p.seq} ${p.tool}(${JSON.stringify(p.args)}). ${how} The script stays parked until ${p.expiresAt}; the final result comes back once a decision is made.`;
@@ -359,7 +412,7 @@ export class Proxy {
     );
   }
 
-  private buildAdvertised(): Tool[] {
+  private buildAdvertised(canElicit: boolean): Tool[] {
     const servers = this.registry.servers();
     const base: Tool[] = [
       {
@@ -399,7 +452,7 @@ export class Proxy {
         annotations: { openWorldHint: true, destructiveHint: true },
       },
     ];
-    if (this.approveToolExposed()) {
+    if (this.approveToolExposed(canElicit)) {
       base.push({
         name: APPROVE_TOOL,
         description: "Resume an execution that paused for approval. Only call this after a human has explicitly decided.",
@@ -428,11 +481,11 @@ export class Proxy {
         return ok(this.handleDescribe(args));
       case SURFACE.execute.name: {
         const executionId = randomUUID();
-        return this.settle(executionId, this.bridge.run(String(args.code ?? ""), { executionId, traceparent: ctx.traceparent, signal: ctx.signal, onLog: ctx.onLog, principal: ctx.principal }));
+        return this.settle(executionId, this.bridge.run(String(args.code ?? ""), { executionId, traceparent: ctx.traceparent, signal: ctx.signal, onLog: ctx.onLog, principal: ctx.principal }), ctx.canElicit);
       }
       case APPROVE_TOOL:
-        if (!this.approveToolExposed()) throw new Error(`Unknown tool: ${name}`);
-        return this.resumeOutcome(String(args.executionId ?? ""), Number(args.seq), Boolean(args.allow), ctx.principal);
+        if (!this.approveToolExposed(ctx.canElicit)) throw new Error(`Unknown tool: ${name}`);
+        return this.resumeOutcome(String(args.executionId ?? ""), Number(args.seq), Boolean(args.allow), ctx.principal, ctx.canElicit);
       default: {
         const tool = this.passthrough.get(name);
         if (!tool) throw new Error(`Unknown tool: ${name}`);
@@ -499,13 +552,23 @@ export class Proxy {
 interface Outcome {
   text: string;
   isError: boolean;
+  /** Set when the run parked; `text` is then the "paused" message for a client that cannot be asked. */
+  pending?: PendingApproval;
 }
 
 interface CallContext {
   principal: Principal;
   traceparent: string | undefined;
   signal: AbortSignal;
+  /** Whether this request's client can show an elicitation form. */
+  canElicit: boolean;
   onLog: ((entry: LogEntry) => void) | undefined;
+}
+
+/** From the 2026-07-28 per-request envelope when there is one, else the 2025 `initialize` handshake. */
+function canElicit(server: Server, ctx: ServerContext): boolean {
+  const envelope = ctx.mcpReq.envelope as Record<string, { elicitation?: unknown } | undefined> | undefined;
+  return Boolean(envelope?.[CLIENT_CAPABILITIES_META_KEY]?.elicitation ?? server.getClientCapabilities()?.elicitation);
 }
 
 /** MCP tool name under which a passthrough tool is advertised. `__` because `.` is not allowed in tool names by some clients. */
