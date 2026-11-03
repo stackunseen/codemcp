@@ -11,7 +11,8 @@ Monorepo with three-OS CI. Core: registry, deterministic TypeScript stubs at thr
 - [ ] Publish benchmark numbers for three model families from the `benchmark` workflow
 - [ ] Install recipes per client with CI smoke tests
 - [ ] Structured results through passthrough and `execute`
-- [ ] Migrate to the MCP TypeScript SDK v2: dual-era negotiation, one server object per request, `ttlMs` / `cacheScope` / `resultType`, approvals as multi round-trip requests on 2026-07-28 connections
+- [x] Move to the MCP TypeScript SDK v2 packages (`@modelcontextprotocol/client` and `/server` 2.3), still speaking the 2025 revision
+- [ ] Serve and connect on both protocol eras: version negotiation to upstreams, the 2026-07-28 revision to clients, `ttlMs` / `cacheScope` / `resultType`, approvals as multi round-trip requests on 2026-07-28 connections
 - [ ] HTTP server mode with per-connection identity; upstream elicitation relay; resources and prompts
 - [ ] OAuth 2.1 for upstream HTTP servers with tokens in the OS keychain
 - [ ] Deno subprocess executor; Monty executor and Python stubs

@@ -1,8 +1,7 @@
 // A small MCP server over stdio that stands in for a real upstream. It holds a product catalog and
 // a notes list, with read-only, destructive and plain tools so policy behavior is visible.
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { Server } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 
 const items = Array.from({ length: 40 }, (_, i) => ({
   id: i + 1,
@@ -90,8 +89,8 @@ const handlers = {
 };
 
 const server = new Server({ name: "catalog", version: "0.1.0" }, { capabilities: { tools: {} } });
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
-server.setRequestHandler(CallToolRequestSchema, async (req) => {
+server.setRequestHandler("tools/list", async () => ({ tools }));
+server.setRequestHandler("tools/call", async (req) => {
   const handler = handlers[req.params.name];
   return handler ? handler(req.params.arguments ?? {}) : failure(`unknown tool ${req.params.name}`);
 });

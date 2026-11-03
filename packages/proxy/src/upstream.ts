@@ -1,6 +1,5 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonValue, UpstreamCallContext, UpstreamTool } from "codemcp-core";
 import { isHttpServer, type ServerConfig } from "./config.js";
 
@@ -40,15 +39,10 @@ export class Upstream {
 
   async listTools(): Promise<UpstreamTool[]> {
     const client = this.requireClient();
-    const tools: UpstreamTool[] = [];
-    let cursor: string | undefined;
-    do {
-      const page = await client.listTools(cursor ? { cursor } : {});
-      // The SDK tool type is structurally an UpstreamTool; only the missing-schema default is real work.
-      for (const t of page.tools) tools.push({ ...t, inputSchema: (t.inputSchema ?? { type: "object" }) as Record<string, unknown> } as UpstreamTool);
-      cursor = page.nextCursor;
-    } while (cursor);
-    return tools;
+    // Without a cursor the SDK walks every page itself.
+    const { tools } = await client.listTools();
+    // The SDK tool type is structurally an UpstreamTool; only the missing-schema default is real work.
+    return tools.map((t) => ({ ...t, inputSchema: (t.inputSchema ?? { type: "object" }) as Record<string, unknown> }) as UpstreamTool);
   }
 
   /**
@@ -63,7 +57,6 @@ export class Upstream {
         arguments: (args && typeof args === "object" && !Array.isArray(args) ? args : {}) as Record<string, unknown>,
         ...(ctx?.traceparent !== undefined ? { _meta: { traceparent: ctx.traceparent } } : {}),
       },
-      undefined,
       // The bridge owns the clock: its abort signal ends the request; progress from the server keeps it alive.
       ctx ? { signal: ctx.signal, timeout: ctx.timeoutMs, resetTimeoutOnProgress: true } : undefined,
     );

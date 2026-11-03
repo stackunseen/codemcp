@@ -36,7 +36,8 @@ Things to know before you depend on codemcp:
 - **No state between executions.** A second pass refetches and spends the budget again.
 - **Stdio only.** One proxy process per client, and every upstream is respawned when the client restarts.
 - **Startup cost.** Worker plus WASM startup is about 120 ms per `execute`.
+- **10 MB stdio messages.** The SDK closes a stdio upstream that sends a single message over 10 MB; that server shows as disconnected until the proxy restarts.
 
 ## What is next
 
-The order of work is in [ROADMAP.md](ROADMAP.md). The next items are structured results through passthrough and `execute`, and the migration to the MCP TypeScript SDK v2, which unblocks upstream elicitation, resources, OAuth and an HTTP server mode.
+The order of work is in [ROADMAP.md](ROADMAP.md). codemcp now runs on the MCP TypeScript SDK v2 packages and still speaks the 2025 revision. The next items are structured results through passthrough and `execute`, and serving the 2026-07-28 revision alongside it, which with SDK v2 unblocks upstream elicitation, resources, OAuth and an HTTP server mode.

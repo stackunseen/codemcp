@@ -1,13 +1,12 @@
 // A tiny upstream MCP server used by the end-to-end test. Runs over stdio.
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { Server } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 
 const server = new Server({ name: "fixture-echo", version: "0.0.0" }, { capabilities: { tools: {} } });
 
 const ITEMS = Array.from({ length: 25 }, (_, i) => ({ id: i + 1, name: `item-${i + 1}`, price: (i + 1) * 3 }));
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
+server.setRequestHandler("tools/list", async () => ({
   tools: [
     {
       name: "list-items",
@@ -35,7 +34,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-server.setRequestHandler(CallToolRequestSchema, async (req) => {
+server.setRequestHandler("tools/call", async (req) => {
   const args = req.params.arguments ?? {};
   switch (req.params.name) {
     case "list-items":
