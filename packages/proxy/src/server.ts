@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { CallToolRequestSchema, ListToolsRequestSchema, type Tool } from "@modelcontextprotocol/sdk/types.js";
+import { Server, type ServerContext, type Tool } from "@modelcontextprotocol/server";
 import {
   ApprovalGate,
   BridgeHost,
@@ -127,25 +126,25 @@ export class Proxy {
     });
     this.server = new Server({ name: "codemcp", version: "0.0.1" }, { capabilities: { tools: { listChanged: true } } });
     // Built per request: whether `approve` is advertised depends on the connected client's capabilities.
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: this.listTools() }));
-    this.server.setRequestHandler(CallToolRequestSchema, async (req, extra) => {
+    this.server.setRequestHandler("tools/list", async () => ({ tools: this.listTools() }));
+    this.server.setRequestHandler("tools/call", async (req, ctx) => {
       const args = (req.params.arguments ?? {}) as Record<string, unknown>;
       const meta = req.params._meta as { traceparent?: string; progressToken?: string | number } | undefined;
       const progress = meta?.progressToken;
-      const principal = await this.identity.resolve(Proxy.identityContext(extra));
+      const principal = await this.identity.resolve(Proxy.identityContext(ctx));
       if (!principal) return { content: [{ type: "text", text: `Unauthenticated: the ${this.identity.name} identity provider could not resolve a principal for this request` }], isError: true };
-      const ctx: CallContext = {
+      const call: CallContext = {
         principal,
         traceparent: meta?.traceparent,
-        signal: extra.signal,
+        signal: ctx.mcpReq.signal,
         // Log lines become progress notifications when the client asked for progress.
         onLog:
           progress === undefined
             ? undefined
-            : (entry: LogEntry) => void extra.sendNotification({ method: "notifications/progress", params: { progressToken: progress, progress: entry.t, message: `[${entry.level}] ${entry.message}` } }).catch(() => undefined),
+            : (entry: LogEntry) => void ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken: progress, progress: entry.t, message: `[${entry.level}] ${entry.message}` } }).catch(() => undefined),
       };
       try {
-        const outcome = await this.handleTool(req.params.name, args, ctx);
+        const outcome = await this.handleTool(req.params.name, args, call);
         return { content: [{ type: "text", text: outcome.text }], isError: outcome.isError };
       } catch (err) {
         return { content: [{ type: "text", text: (err as Error).message }], isError: true };
@@ -231,9 +230,12 @@ export class Proxy {
   }
 
   /** What the transport layer knows about the caller. The SDK exposes HTTP details only on HTTP transports. */
-  private static identityContext(extra: { authInfo?: unknown; requestInfo?: { headers?: Record<string, string | string[] | undefined> } }): IdentityContext {
-    const http = extra.requestInfo?.headers;
-    return http ? { transport: "http", headers: http, ...(extra.authInfo ? { authInfo: extra.authInfo as IdentityContext["authInfo"] } : {}) } : { transport: "stdio" };
+  private static identityContext(ctx: ServerContext): IdentityContext {
+    const req = ctx.http?.req;
+    if (!req) return { transport: "stdio" };
+    // v2 hands over a Web `Request`; identity providers read a plain record keyed by lower-case name.
+    const headers = Object.fromEntries(req.headers.entries());
+    return { transport: "http", headers, ...(ctx.http?.authInfo ? { authInfo: ctx.http.authInfo as IdentityContext["authInfo"] } : {}) };
   }
 
   /** Re-list tools for the given servers (default: all) in parallel, then rebuild derived state. */

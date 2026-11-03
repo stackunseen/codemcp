@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { parseStubDetail, StubGenerator, writeJsonFile } from "codemcp-core";
 import { CONFIG_FILENAME, ConfigLoader, type CodemcpConfig } from "./config.js";
 import { ClientConfigDiscovery } from "./import.js";

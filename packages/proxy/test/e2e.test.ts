@@ -1,7 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { readFileSync } from "node:fs";
 import { Ajv2020 as Ajv } from "ajv/dist/2020.js";
 import { MemorySink, type AuditEvent } from "codemcp-core";
@@ -15,7 +14,7 @@ let client: Client;
 
 let lastIsError = false;
 async function call(name: string, args: Record<string, unknown>, onprogress?: (p: { message?: string }) => void): Promise<string> {
-  const res = await client.callTool({ name, arguments: args }, undefined, onprogress ? { onprogress } : undefined);
+  const res = await client.callTool({ name, arguments: args }, onprogress ? { onprogress } : undefined);
   const content = res.content as Array<{ type: string; text?: string }>;
   lastIsError = Boolean(res.isError);
   return content.map((c) => c.text ?? "").join("\n");

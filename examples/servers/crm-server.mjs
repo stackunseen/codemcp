@@ -1,9 +1,8 @@
 // A second demo upstream: customers and orders that reference catalog item ids, so scripts have a
 // reason to join across servers. It also requires a token, to show how credentials stay host-side:
 // the proxy passes CRM_TOKEN from its config `env`; the sandbox never sees it.
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { Server } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 
 if (process.env.CRM_TOKEN !== "demo-token") {
   process.stderr.write("crm-server: CRM_TOKEN missing or wrong; refusing to start\n");
@@ -55,8 +54,8 @@ const handlers = {
 };
 
 const server = new Server({ name: "crm", version: "0.1.0" }, { capabilities: { tools: {} } });
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
-server.setRequestHandler(CallToolRequestSchema, async (req) => {
+server.setRequestHandler("tools/list", async () => ({ tools }));
+server.setRequestHandler("tools/call", async (req) => {
   const handler = handlers[req.params.name];
   return handler ? handler(req.params.arguments ?? {}) : { content: [{ type: "text", text: `unknown tool ${req.params.name}` }], isError: true };
 });

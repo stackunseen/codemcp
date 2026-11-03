@@ -6,7 +6,7 @@ One MCP server in front of all the MCP servers you already use. Your model sees 
 
 [![tokens vs direct MCP](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fstackunseen%2Fcodemcp%2Fmain%2Fdocs%2Fbenchmark.json)](docs/BENCHMARK.md)
 
-> Pre-alpha. APIs will change. codemcp speaks MCP 2025-11-25 through SDK 1.x today; the move to SDK v2 and the 2026-07-28 revision is next. [docs/STATUS.md](docs/STATUS.md) lists what works and what does not yet.
+> Pre-alpha. APIs will change. codemcp runs on the MCP TypeScript SDK v2 and speaks MCP 2025-11-25 today; serving the 2026-07-28 revision is next. [docs/STATUS.md](docs/STATUS.md) lists what works and what does not yet.
 
 ## Why
 

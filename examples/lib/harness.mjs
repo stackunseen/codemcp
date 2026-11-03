@@ -5,8 +5,7 @@
 // examples against your real MCP servers instead.
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { MemorySink } from "codemcp-core";
 import { ConfigLoader, Proxy } from "codemcp-cli";
 
