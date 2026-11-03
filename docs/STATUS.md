@@ -10,7 +10,8 @@ codemcp is pre-alpha. This page says what you can rely on today and what you can
 - **Policy is evaluated on the qualified `server.tool` name**, never on a name the model typed. A server's `destructiveHint` raises a default of allow to approve; annotations never loosen a decision, so `readOnlyHint` does not bypass a strict default. Explicit rules override.
 - **Limits are enforced from outside the guest.** Call, per-result, total and return byte budgets; memory, stack and deadline; a worker heap cap. The guest clock stops while waiting on the host.
 - **No credential enters the sandbox.** There is no process, env, filesystem or network inside. Each upstream holds its own transport, env and headers, and a missing `${VAR}` fails at startup.
-- **Approvals park the script.** The suspended worker is the state. A decision is keyed by execution id and call number and arrives through elicitation, the `approve` tool or an operator channel. A denial is catchable.
+- **Both protocol eras.** `codemcp serve` speaks MCP 2025-11-25 and 2026-07-28 to clients; the opening exchange picks the era per connection. Upstreams are probed per server (`protocol`, default `auto` for HTTP and `legacy` for stdio).
+- **Approvals park the script.** The suspended worker is the state. A decision is keyed by execution id and call number and arrives through elicitation (an `input_required` round on 2026-07-28, a server-to-client request on 2025), the `approve` tool or an operator channel. A denial is catchable.
 - **Pinned definitions.** The hash covers name, description, schemas and annotations. Drift is fatal at call time and logged. The pin file keeps the approved definition, so `codemcp approve` shows a diff of what changed before it re-pins, and `--dry-run` shows it without pinning.
 - **Tool text is cleaned before the model sees it.** Control and invisible characters are removed and descriptions longer than 2000 characters are cut, in the tool description, the schema descriptions and the title. Each edit is logged and shown by `codemcp tools`. Turn it off with `descriptions.clean: false`.
 - **Formatting repair.** Fences, wrappers and literal newlines are fixed, TypeScript is erased, and the syntax is checked before a worker is spawned.
@@ -35,9 +36,10 @@ Things to know before you depend on codemcp:
 - **Return types are mostly `Promise<unknown>`**, because few servers ship an `outputSchema`. Results that parse as JSON are returned as objects, the rest as strings.
 - **No state between executions.** A second pass refetches and spends the budget again.
 - **Stdio only.** One proxy process per client, and every upstream is respawned when the client restarts.
+- **A 2026-07-28 client caps approval rounds.** The SDK client retries an `input_required` call 10 times by default, so a script with more gated calls than that fails on such a client; 2025 clients get 64.
 - **Startup cost.** Worker plus WASM startup is about 120 ms per `execute`.
 - **10 MB stdio messages.** The SDK closes a stdio upstream that sends a single message over 10 MB; that server shows as disconnected until the proxy restarts.
 
 ## What is next
 
-The order of work is in [ROADMAP.md](ROADMAP.md). codemcp now runs on the MCP TypeScript SDK v2 packages and still speaks the 2025 revision. The next items are structured results through passthrough and `execute`, and serving the 2026-07-28 revision alongside it, which with SDK v2 unblocks upstream elicitation, resources, OAuth and an HTTP server mode.
+The order of work is in [ROADMAP.md](ROADMAP.md). codemcp runs on the MCP TypeScript SDK v2 packages and speaks both the 2025 and 2026-07-28 revisions. The next items are structured results through passthrough and `execute`, an HTTP server mode, and OAuth for upstream HTTP servers.

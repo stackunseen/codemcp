@@ -2,16 +2,28 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { DEFAULT_ROOT_NAME, readJsonFile, SERVER_NAME_RE, type BudgetConfig, type DescriptionHygiene, type ExecuteLimits, type HttpSinkOptions, type PolicyConfig, type Principal } from "codemcp-core";
 
+/**
+ * Which MCP protocol era to speak to an upstream. `auto` probes with `server/discover` and falls back to the
+ * 2025 handshake; `legacy` skips the probe; a revision string pins it and fails against older servers.
+ */
+export type UpstreamProtocol = "auto" | "legacy" | "2026-07-28";
+
+export const UPSTREAM_PROTOCOLS: readonly UpstreamProtocol[] = ["auto", "legacy", "2026-07-28"];
+
 export interface StdioServerConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
   cwd?: string;
+  /** Default `legacy`: probing a stdio server spawns a second, short-lived copy of it. */
+  protocol?: UpstreamProtocol;
 }
 
 export interface HttpServerConfig {
   url: string;
   headers?: Record<string, string>;
+  /** Default `auto`. */
+  protocol?: UpstreamProtocol;
 }
 
 export type ServerConfig = StdioServerConfig | HttpServerConfig;
@@ -156,6 +168,8 @@ export class ConfigLoader {
       const hasCmd = typeof (s as StdioServerConfig).command === "string";
       const hasUrl = typeof (s as HttpServerConfig).url === "string";
       if (hasCmd === hasUrl) throw new Error(`${source}: server "${name}" needs exactly one of "command" or "url"`);
+      const protocol = (s as ServerConfig).protocol;
+      if (protocol !== undefined && !UPSTREAM_PROTOCOLS.includes(protocol)) throw new Error(`${source}: server "${name}" has protocol "${String(protocol)}"; use one of ${UPSTREAM_PROTOCOLS.join(", ")}`);
     }
     return { ...cfg, servers } as CodemcpConfig;
   }

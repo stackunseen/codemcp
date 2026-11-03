@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { parseStubDetail, StubGenerator, writeJsonFile } from "codemcp-core";
 import { CONFIG_FILENAME, ConfigLoader, type CodemcpConfig } from "./config.js";
 import { ClientConfigDiscovery } from "./import.js";
@@ -77,7 +77,8 @@ export class Cli {
   private async serve(config: CodemcpConfig, strict: boolean): Promise<number> {
     const proxy = new Proxy({ config, ...(strict ? { autoApproveNew: false } : {}) });
     await proxy.start();
-    await proxy.server.connect(new StdioServerTransport());
+    // Serves 2025 and 2026-07-28 clients: the opening exchange picks the era, and each connection gets its own server.
+    serveStdio(() => proxy.createServer(), { onerror: (err) => process.stderr.write(`[codemcp] ${err.message}\n`) });
     const shutdown = async (): Promise<void> => {
       await proxy.close();
       process.exit(0);
@@ -110,7 +111,7 @@ export class Cli {
 
   private tools(config: CodemcpConfig): Promise<number> {
     return this.withProxy(config, async (proxy) => {
-      for (const s of proxy.serverStatus()) this.out(`${s.state.padEnd(14)} ${s.name}${s.state === "connected" ? `  ${s.tools} tools` : `  ${s.error ?? ""}`}\n`);
+      for (const s of proxy.serverStatus()) this.out(`${s.state.padEnd(14)} ${s.name}${s.state === "connected" ? `  ${s.tools} tools${s.era ? ` (${s.era})` : ""}` : `  ${s.error ?? ""}`}\n`);
       this.out("\n");
       for (const t of proxy.registry.list()) {
         const flags = [t.annotations?.readOnlyHint ? "ro" : "", t.annotations?.destructiveHint ? "DESTRUCTIVE" : "", t.hygiene ? "cleaned" : ""].filter(Boolean).join(",");

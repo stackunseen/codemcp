@@ -34,6 +34,8 @@ A stdio server gets its secrets as environment variables. Each one starts with a
 
 `${NAME}` is replaced from the proxy's environment when the config loads. An unset variable is an error at startup, so a missing secret fails loudly instead of producing an empty token. Keep the values in your shell, a `.env` loader or your secret manager; the config file itself is safe to commit.
 
+Each entry can also set `protocol`. `auto` probes with `server/discover`, speaks the 2026-07-28 revision when the server offers it and falls back to the 2025 handshake; `legacy` skips the probe; `"2026-07-28"` requires it. HTTP servers default to `auto`. Stdio servers default to `legacy`, because the SDK probes a stdio server by starting a second, short-lived copy of it; set `auto` on the ones where that is harmless. `codemcp tools` prints which era each connection landed on.
+
 Credentials belong to the connection, not the call. Each `servers` entry is one connection with its own transport, environment and headers. When a script calls `tools.crm.list_orders()` the bridge forwards to the `crm` connection; the script names a tool and never sees or chooses a credential. Two entries can run the same server binary with different tokens and each gets only its own.
 
 ## Identity on the client side
@@ -70,7 +72,7 @@ When policy marks a call `approve`, by rule or because the server flagged it `de
 
 The decision reaches the proxy one of three ways:
 
-- **Elicitation.** If the client advertises it, the proxy asks through it and the execution finishes inside the same request.
+- **Elicitation.** If the client advertises it, `execute` answers with the question and a sealed token naming the parked call. On a 2026-07-28 connection that is an `input_required` result and the client retries with the answer; on a 2025 connection the SDK asks with an `elicitation/create` request inside the same call. Either way the script continues from where it parked, and a script with several gated calls asks once per call. The token is HMAC-signed with a key that never leaves the proxy process and expires with the approval timeout, so a client cannot forge or replay a decision for a different call.
 - **The `approve` tool.** Otherwise `execute` returns `Paused: execution <id> is waiting for approval of call #<n> ...` and advertises `approve`. The default `approvals.tool: "auto"` only advertises it to clients without elicitation. The model is told to ask you first; the agent examples confirm at the terminal.
 - **An operator channel.** With `approvals.tool: false` the model cannot approve; something that holds the `Proxy` object calls `resume(executionId, seq, allow)`. The chat page and playground do this over HTTP.
 

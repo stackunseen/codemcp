@@ -1,7 +1,10 @@
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonValue, UpstreamCallContext, UpstreamTool } from "codemcp-core";
-import { isHttpServer, type ServerConfig } from "./config.js";
+import { isHttpServer, type ServerConfig, type UpstreamProtocol } from "./config.js";
+
+/** A legacy stdio server may never answer the probe; on stdio, silence means legacy, so keep the wait short. */
+const STDIO_PROBE_TIMEOUT_MS = 5_000;
 
 /**
  * One connection to one upstream MCP server. Holds that server's transport and credentials.
@@ -17,8 +20,21 @@ export class Upstream {
   ) {}
 
   async connect(): Promise<void> {
-    const client = new Client({ name: "codemcp", version: "0.0.1" }, { capabilities: {} });
-    const transport = isHttpServer(this.config)
+    const http = isHttpServer(this.config);
+    const protocol: UpstreamProtocol = this.config.protocol ?? (http ? "auto" : "legacy");
+    const client = new Client(
+      { name: "codemcp", version: "0.0.1" },
+      {
+        capabilities: {},
+        versionNegotiation: {
+          mode: protocol === "auto" || protocol === "legacy" ? protocol : { pin: protocol },
+          ...(http ? {} : { probe: { timeoutMs: STDIO_PROBE_TIMEOUT_MS } }),
+        },
+        // Both eras: 2025 servers notify, 2026 servers publish through `subscriptions/listen`.
+        listChanged: { tools: { autoRefresh: false, onChanged: () => this.onToolsChanged() } },
+      },
+    );
+    const transport = http
       ? new StreamableHTTPClientTransport(new URL(this.config.url), {
           requestInit: this.config.headers ? { headers: this.config.headers } : undefined,
         })
@@ -31,10 +47,12 @@ export class Upstream {
           stderr: "pipe",
         });
     await client.connect(transport);
-    client.fallbackNotificationHandler = async (n) => {
-      if (n.method === "notifications/tools/list_changed") this.onToolsChanged();
-    };
     this.client = client;
+  }
+
+  /** The era the connection negotiated: `legacy` (2025 revisions) or `modern` (2026-07-28). */
+  get era(): string | undefined {
+    return this.client?.getProtocolEra();
   }
 
   async listTools(): Promise<UpstreamTool[]> {
