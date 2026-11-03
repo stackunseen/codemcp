@@ -21,6 +21,10 @@ const outputs = {
     `export const BRIDGE_ERRORS = {\n` +
     Object.entries(errors.codes).map(([code, { fatal }]) => `  ${code}: { fatal: ${fatal} },`).join("\n") +
     `\n} as const;\n\n` +
+    `/** The values a bridge error's \`reason\` can take, for the codes that have one. */\n` +
+    `export const BRIDGE_ERROR_REASONS = {\n` +
+    Object.entries(errors.codes).filter(([, { reasons }]) => reasons).map(([code, { reasons }]) => `  ${code}: ${JSON.stringify(Object.keys(reasons))},`).join("\n") +
+    `\n} as const;\n\n` +
     `/** Codes raised by an executor itself. */\n` +
     `export const EXECUTION_CODES = ${JSON.stringify(errors.executionCodes)} as const;\n`,
   "packages/conformance/src/generated/cases.ts":

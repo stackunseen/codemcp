@@ -7,24 +7,29 @@
  *  3. Transport is executor-specific: worker messages for the WASM tier, a stdio pipe for subprocess
  *     tiers, an RPC binding or SDK channel for remote and microVM tiers.
  */
-import { BRIDGE_ERRORS } from "../generated/spec.js";
+import { BRIDGE_ERROR_REASONS, BRIDGE_ERRORS } from "../generated/spec.js";
 import type { HostFunction, JsonValue, LogLevel } from "../types.js";
 
-export { BRIDGE_ERRORS };
+export { BRIDGE_ERROR_REASONS, BRIDGE_ERRORS };
 
 export const BRIDGE_PROTOCOL_VERSION = 1 as const;
 
 export type BridgeErrorCode = keyof typeof BRIDGE_ERRORS;
 
+/** The reasons the spec lists for `code`, or `never` for a code that has none. */
+export type BridgeErrorReason<C extends BridgeErrorCode = BridgeErrorCode> = C extends keyof typeof BRIDGE_ERROR_REASONS ? (typeof BRIDGE_ERROR_REASONS)[C][number] : never;
+
 /**
  * The error a host function throws to reject a guest call. `fatal` is derived from the code.
- * Executors forward `code` and `message` to the guest and end the execution when `fatal` is set.
+ * Executors forward `code`, `message` and `reason` to the guest and end the execution when `fatal` is set.
  */
 export class BridgeCallError extends Error {
   override readonly name = "BridgeCallError";
   constructor(
     readonly code: BridgeErrorCode,
     message: string,
+    /** Why, for codes whose spec entry lists `reasons`; scripts branch on it instead of the message. */
+    readonly reason?: BridgeErrorReason,
   ) {
     super(message);
   }
@@ -45,7 +50,7 @@ export type GuestLog = { type: "log"; level: LogLevel; message: string };
 /** Host -> guest: the reply to one `GuestCall`, matched by `seq`. */
 export type HostReply =
   | { v: typeof BRIDGE_PROTOCOL_VERSION; seq: number; ok: true; value: JsonValue }
-  | { v: typeof BRIDGE_PROTOCOL_VERSION; seq: number; ok: false; error: { code: string; message: string } };
+  | { v: typeof BRIDGE_PROTOCOL_VERSION; seq: number; ok: false; error: { code: string; message: string; reason?: string } };
 
 /**
  * Run one guest call against the host-function table. Shared by every executor so that unknown-tool
@@ -66,7 +71,8 @@ export async function callHostFunction(
     return { reply: { v: BRIDGE_PROTOCOL_VERSION, seq, ok: true, value: await fn(args) } };
   } catch (err) {
     const e = asBridgeError(err);
-    return { reply: { v: BRIDGE_PROTOCOL_VERSION, seq, ok: false, error: { code: e.code, message: e.message } }, ...(e.fatal ? { fatal: e } : {}) };
+    const error = { code: e.code, message: e.message, ...(e.reason !== undefined ? { reason: e.reason } : {}) };
+    return { reply: { v: BRIDGE_PROTOCOL_VERSION, seq, ok: false, error }, ...(e.fatal ? { fatal: e } : {}) };
   }
 }
 

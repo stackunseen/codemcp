@@ -178,6 +178,7 @@ describe("BridgeHost", () => {
     const { bridge: noHandler } = setup();
     const none = await noHandler.run("gh.nuke({});");
     expect(none.value).toEqual([expect.stringContaining("no approver is configured")]);
+    expect(none.calls[0]).toMatchObject({ errorCode: "approval_required", errorReason: "no_approver" });
 
     const { registry } = setup();
     const gate = new ApprovalGate(30);
@@ -186,13 +187,17 @@ describe("BridgeHost", () => {
     const expiring = bridge.run("gh.nuke({});", { executionId: "exp" });
     const expired = await expiring;
     expect(expired.value).toEqual([expect.stringContaining("expired before anyone decided")]);
-    expect(expired.calls[0]).toMatchObject({ ok: false, errorCode: "approval_required" });
+    expect(expired.calls[0]).toMatchObject({ ok: false, errorCode: "approval_required", errorReason: "expired" });
 
     const refusing = bridge.run("gh.nuke({});", { executionId: "ref" });
     await new Promise((r) => setTimeout(r, 5));
     expect(gate.decide("ref", 1, false)).toBe("decided");
     const refused = await refusing;
     expect(refused.value).toEqual([expect.stringContaining("was denied")]);
+    expect(refused.calls[0]).toMatchObject({ errorReason: "denied" });
+
+    const rejecting = new BridgeHost({ registry, executor: scripted, callUpstream: async () => "ok", approvals: async () => { throw new Error("approver crashed"); } });
+    expect((await rejecting.run("gh.nuke({});")).calls[0]).toMatchObject({ errorReason: "denied" });
   });
 
   it("aborts the upstream call when the run is cancelled", async () => {

@@ -1,11 +1,19 @@
 {
-  "$comment": "Every error code a guest can observe on a rejected call. `fatal` codes also end the execution, even if the script catches them.",
+  "$comment": "Every error code a guest can observe on a rejected call. `fatal` codes also end the execution, even if the script catches them. `reasons`, when present, are the values the error's `reason` field can take for that code; a script branches on `reason` instead of the message text.",
   "codes": {
     "unknown_tool": { "fatal": false, "meaning": "no such stub; use search / describe" },
     "invalid_arguments": { "fatal": false, "meaning": "failed schema validation" },
     "upstream_error": { "fatal": false, "meaning": "the upstream server returned an error, timed out or was cancelled" },
     "policy_denied": { "fatal": false, "meaning": "denied by a policy rule" },
-    "approval_required": { "fatal": false, "meaning": "the call needed human approval and none was granted" },
+    "approval_required": {
+      "fatal": false,
+      "meaning": "the call needed human approval and none was granted",
+      "reasons": {
+        "denied": "a person said no",
+        "expired": "nobody decided before the approval timeout",
+        "no_approver": "the host has nowhere to ask"
+      }
+    },
     "pin_drifted": { "fatal": true, "meaning": "the tool definition changed since it was approved" },
     "budget_exceeded": { "fatal": true, "meaning": "call count or byte budget exhausted" },
     "audit_unavailable": { "fatal": true, "meaning": "the audit sink refused the record and the host is configured to fail closed (audit.required)" }

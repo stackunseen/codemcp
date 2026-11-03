@@ -44,6 +44,8 @@ export type AuditEvent =
       resultBytes?: number;
       truncated?: boolean;
       error?: string;
+      /** The bridge error's reason, for codes that have one. */
+      reason?: string;
       /** The sink refused this call's `call_start` record and the host ran fail-open; the call went out unrecorded until now. */
       auditError?: string;
       /** Only included when `includeArgs` is on. Arguments can contain sensitive data. */

@@ -3,7 +3,7 @@
   "fns": {
     "echo": "returns its argument",
     "value": "returns `value`",
-    "throw": "rejects with `message`, as a bridge error with `code` when given",
+    "throw": "rejects with `message`, as a bridge error with `code` (and `reason`) when given",
     "delay": "resolves with `value` after `ms` milliseconds",
     "inc": "returns args.v + 1"
   },
@@ -26,6 +26,7 @@
     { "name": "tool errors surface as exceptions the script can handle", "category": "bridge", "code": { "js": "try { await tools.flaky.run({}); return 'no error'; } catch (e) { return { msg: e.message, code: e.code }; }" }, "fns": { "flaky.run": { "kind": "throw", "message": "upstream said no" } }, "expect": { "status": "completed", "value": { "msg": "upstream said no", "code": "upstream_error" } } },
     { "name": "fatal host errors end the execution even inside try/catch", "category": "bridge", "code": { "js": "try { await tools.gate.drifted({}); } catch (e) {} return 'survived';" }, "fns": { "gate.drifted": { "kind": "throw", "code": "pin_drifted", "message": "Tool definition changed since it was approved" } }, "expect": { "status": "error", "codes": ["pin_drifted"] } },
     { "name": "a refused call is catchable so the script can fall back", "category": "bridge", "code": { "js": "try { await tools.gate.denied({}); return 'no error'; } catch (e) { return { code: e.code, fallback: await tools.echo.say('read-only path') }; }" }, "fns": { "gate.denied": { "kind": "throw", "code": "policy_denied", "message": "Policy denies gate.denied" }, "echo.say": { "kind": "echo" } }, "expect": { "status": "completed", "value": { "code": "policy_denied", "fallback": "read-only path" } } },
+    { "name": "a refusal's reason reaches the script and is absent for codes without one", "category": "bridge", "code": { "js": "const out = []; for (const t of [tools.gate.expired, tools.gate.denied]) { try { await t({}); } catch (e) { out.push([e.code, e.reason === undefined ? null : e.reason]); } } return out;" }, "fns": { "gate.expired": { "kind": "throw", "code": "approval_required", "reason": "expired", "message": "Call to gate.expired requires approval and the request expired before anyone decided" }, "gate.denied": { "kind": "throw", "code": "policy_denied", "message": "Policy denies gate.denied" } }, "expect": { "status": "completed", "value": [["approval_required", "expired"], ["policy_denied", null]] } },
     { "name": "a script that returns without awaiting a call fails instead of dropping it", "category": "bridge", "code": { "js": "tools.echo.say({ write: true }); return 'done';" }, "fns": { "echo.say": { "kind": "echo" } }, "expect": { "status": "error", "codes": ["runtime_error"], "messageMatches": "missing await", "receivedCount": 1 } },
     { "name": "sleep resolves after the requested delay", "category": "semantics", "code": { "js": "const t = Date.now(); await sleep(120); return Date.now() - t;" }, "expect": { "status": "completed", "valueType": "number", "valueMin": 100 } },
     { "name": "sleep counts against the deadline", "category": "limits", "code": { "js": "await sleep(10000); return 'woke';" }, "options": { "timeoutMs": 1500 }, "expect": { "status": "error", "codes": ["timeout"], "maxDurationMs": 3500 } },
