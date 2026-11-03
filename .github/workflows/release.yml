@@ -29,6 +29,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -72,34 +74,10 @@ jobs:
           gh release create "v${{ steps.bump.outputs.version }}" --generate-notes --title "v${{ steps.bump.outputs.version }}" \
             $([ '${{ inputs.tag }}' != 'latest' ] && echo --prerelease)
 
-      # The MCP registry listing goes last: it checks that codemcp-cli on npm carries the
-      # `mcpName` in server.json, and a failure here leaves npm, the tag and the release intact.
-      # Only stable releases are listed. Bump MCP_PUBLISHER_VERSION deliberately; never use releases/latest.
-      - name: Install cosign
-        if: inputs.tag == 'latest'
-        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-      - name: Publish to the MCP registry
-        if: inputs.tag == 'latest'
-        env:
-          MCP_PUBLISHER_VERSION: v1.8.1
-        run: |
-          set -euo pipefail
-          archive="mcp-publisher_linux_amd64.tar.gz"
-          base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
-          curl --fail --location --silent --show-error --output "$archive" "$base_url/$archive"
-          curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base_url/$archive.sigstore.json"
-          cosign verify-blob \
-            --bundle "$archive.sigstore.json" \
-            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
-            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            "$archive"
-          tar xzf "$archive" mcp-publisher
-          rm -f "$archive" "$archive.sigstore.json"
-          ./mcp-publisher login github-oidc
-          # npm can take a moment to serve a just-published version to the registry's check.
-          for attempt in 1 2 3; do
-            ./mcp-publisher publish && exit 0
-            echo "registry publish attempt $attempt failed; retrying in 30 s"
-            sleep 30
-          done
-          exit 1
+  # Its own job so a failed listing can be re-run alone, without bumping or publishing again.
+  registry:
+    needs: release
+    if: inputs.tag == 'latest'
+    uses: ./.github/workflows/registry.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
