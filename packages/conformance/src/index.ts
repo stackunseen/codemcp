@@ -1,4 +1,4 @@
-import { BridgeCallError, type BridgeErrorCode, type ExecuteResult, type Executor, type HostFunction, type JsonValue } from "codemcp-core";
+import { BridgeCallError, type BridgeErrorCode, type BridgeErrorReason, type ExecuteResult, type Executor, type HostFunction, type JsonValue } from "codemcp-core";
 import { CASES } from "./generated/cases.js";
 import type { GuestLanguage, SpecCase, SpecFn } from "./spec-types.js";
 
@@ -44,7 +44,7 @@ export class ConformanceSuite {
         return () => new Promise((res) => setTimeout(() => res(spec.value), spec.ms));
       case "throw":
         return async () => {
-          throw spec.code ? new BridgeCallError(spec.code as BridgeErrorCode, spec.message) : new Error(spec.message);
+          throw spec.code ? new BridgeCallError(spec.code as BridgeErrorCode, spec.message, spec.reason as BridgeErrorReason | undefined) : new Error(spec.message);
         };
     }
   }

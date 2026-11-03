@@ -6,7 +6,7 @@ export type GuestLanguage = "js" | "py";
 export type SpecFn =
   | { kind: "echo" }
   | { kind: "value"; value: JsonValue }
-  | { kind: "throw"; message: string; code?: string }
+  | { kind: "throw"; message: string; code?: string; reason?: string }
   | { kind: "delay"; ms: number; value: JsonValue }
   | { kind: "inc" };
 

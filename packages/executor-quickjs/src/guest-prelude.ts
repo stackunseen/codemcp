@@ -24,6 +24,7 @@ globalThis.__deliver = (seq, json) => {
   else {
     const e = new Error(r.error.message);
     e.code = r.error.code;
+    if (r.error.reason !== undefined) e.reason = r.error.reason;
     p.reject(e);
   }
 };

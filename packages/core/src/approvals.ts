@@ -1,3 +1,4 @@
+import type { BridgeErrorReason } from "./bridge/protocol.js";
 import type { Principal } from "./identity.js";
 import type { JsonValue, ToolDescriptor } from "./types.js";
 
@@ -29,7 +30,7 @@ interface Parked {
 export type DecideResult = "decided" | "not_found" | "forbidden";
 
 /** Why a call was not allowed: a person said no, or nobody answered before `expiresAt`. */
-export type ApprovalReason = "denied" | "expired";
+export type ApprovalReason = Exclude<BridgeErrorReason<"approval_required">, "no_approver">;
 
 /** The outcome of one approval request. `reason` is set only when `allow` is false. */
 export interface ApprovalDecision {

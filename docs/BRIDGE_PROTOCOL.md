@@ -42,9 +42,11 @@ The single source is `spec/bridge/errors.json`, generated into `BRIDGE_ERRORS` i
 | `invalid_arguments` | failed schema validation | no |
 | `upstream_error` | the upstream server returned an error | no |
 | `policy_denied` | denied by a policy rule | no |
-| `approval_required` | needed human approval and none was granted | no |
+| `approval_required` | needed human approval and none was granted; `reason` is `denied`, `expired` or `no_approver` | no |
 | `pin_drifted` | the tool definition changed since approval | yes |
 | `budget_exceeded` | call count or byte budget exhausted | yes |
+
+A code can list `reasons` in `errors.json`. The host then sets `reason` on the error, the reply carries it as `error.reason`, and the guest sees it as `e.reason`, so scripts branch on it rather than on message text. Codes without reasons leave it undefined. The `call` audit event and the execution's call records carry it too.
 
 A refused call is catchable so a script can fall back or return partial work. A fatal error ends the execution even if caught: after drift or an exhausted budget nothing further can be trusted. Host functions throw `BridgeCallError`; anything else is reported as `upstream_error`. Executors use `callHostFunction()` so this shaping never drifts between tiers.
 

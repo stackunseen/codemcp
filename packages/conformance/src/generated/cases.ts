@@ -285,6 +285,39 @@ export const CASES: readonly SpecCase[] = [
     }
   },
   {
+    "name": "a refusal's reason reaches the script and is absent for codes without one",
+    "category": "bridge",
+    "code": {
+      "js": "const out = []; for (const t of [tools.gate.expired, tools.gate.denied]) { try { await t({}); } catch (e) { out.push([e.code, e.reason === undefined ? null : e.reason]); } } return out;"
+    },
+    "fns": {
+      "gate.expired": {
+        "kind": "throw",
+        "code": "approval_required",
+        "reason": "expired",
+        "message": "Call to gate.expired requires approval and the request expired before anyone decided"
+      },
+      "gate.denied": {
+        "kind": "throw",
+        "code": "policy_denied",
+        "message": "Policy denies gate.denied"
+      }
+    },
+    "expect": {
+      "status": "completed",
+      "value": [
+        [
+          "approval_required",
+          "expired"
+        ],
+        [
+          "policy_denied",
+          null
+        ]
+      ]
+    }
+  },
+  {
     "name": "a script that returns without awaiting a call fails instead of dropping it",
     "category": "bridge",
     "code": {

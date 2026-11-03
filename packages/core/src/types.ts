@@ -63,6 +63,8 @@ export interface CallRecord {
   auditError?: string;
   /** Bridge error code when `ok` is false. */
   errorCode?: string;
+  /** The error's reason, for codes that have one, such as `denied` or `expired` for `approval_required`. */
+  errorReason?: string;
   error?: string;
   resultBytes?: number;
 }

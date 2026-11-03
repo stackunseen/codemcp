@@ -10,7 +10,7 @@ import type { ToolRegistry } from "../registry.js";
 import type { ApprovalDecision, ApprovalRequest } from "../approvals.js";
 import type { Principal } from "../identity.js";
 import { stripUndefined, type CallRecord, type ExecuteLimits, type ExecuteResult, type ExecutionErrorCode, type Executor, type HostFunction, type JsonValue, type LogEntry, type ToolDescriptor } from "../types.js";
-import { asBridgeError, BridgeCallError, toPlainJson } from "./protocol.js";
+import { asBridgeError, BridgeCallError, toPlainJson, type BridgeErrorReason } from "./protocol.js";
 
 /** Per-call context handed to the upstream caller. */
 export interface UpstreamCallContext {
@@ -26,8 +26,7 @@ export type UpstreamCaller = (tool: ToolDescriptor, args: JsonValue, ctx: Upstre
 
 /**
  * Ask a human whether this call may proceed. Resolve `true` or `{ allow: true }` to allow. `false`, a rejection,
- * or `{ allow: false }` denies; give a `reason` so the script's error says whether a person refused or the
- * request expired unanswered.
+ * or `{ allow: false }` denies with reason `denied`; give `reason: "expired"` when nobody answered in time.
  */
 export type ApprovalHandler = (request: ApprovalRequest) => Promise<boolean | ApprovalDecision>;
 
@@ -127,14 +126,15 @@ export class BridgeHost {
           return value;
         } catch (err) {
           const e = asBridgeError(err);
-          Object.assign(record, { durationMs: Date.now() - callStart, errorCode: e.code, error: e.message });
-          this.write({ type: "call", ...base, ts: iso(), decision: record.decision, ok: false, durationMs: record.durationMs, error: `${e.code}: ${e.message}`, ...(record.auditError ? { auditError: record.auditError } : {}) });
+          const reason = e.reason !== undefined ? { reason: e.reason } : {};
+          Object.assign(record, { durationMs: Date.now() - callStart, errorCode: e.code, error: e.message, ...(e.reason !== undefined ? { errorReason: e.reason } : {}) });
+          this.write({ type: "call", ...base, ts: iso(), decision: record.decision, ok: false, durationMs: record.durationMs, error: `${e.code}: ${e.message}`, ...reason, ...(record.auditError ? { auditError: record.auditError } : {}) });
           if (e.fatal) {
             fatal ??= e;
             throw e;
           }
           // Non-fatal errors surface to the script so the model can self-correct; the tool name helps it do so.
-          throw new BridgeCallError(e.code, e.message.startsWith(tool.qualifiedName) ? e.message : `${tool.qualifiedName}: ${e.message}`);
+          throw new BridgeCallError(e.code, e.message.startsWith(tool.qualifiedName) ? e.message : `${tool.qualifiedName}: ${e.message}`, e.reason);
         }
       };
     }
@@ -184,9 +184,13 @@ export class BridgeHost {
     record.decision = this.opts.policy.decide(tool, principal);
     if (record.decision === "deny") throw new BridgeCallError("policy_denied", `Policy denies ${tool.qualifiedName}`);
     if (record.decision === "approve") {
-      const outcome = this.opts.approvals ? await this.opts.approvals({ executionId, seq: record.seq, tool, args, ...(principal ? { principal } : {}) }).catch(() => false) : false;
+      if (!this.opts.approvals) throw new BridgeCallError("approval_required", approvalMessage(tool.qualifiedName, "no_approver"), "no_approver");
+      const outcome = await this.opts.approvals({ executionId, seq: record.seq, tool, args, ...(principal ? { principal } : {}) }).catch(() => false);
       const decision: ApprovalDecision = typeof outcome === "boolean" ? { allow: outcome } : outcome;
-      if (!decision.allow) throw new BridgeCallError("approval_required", approvalMessage(tool.qualifiedName, decision.reason, this.opts.approvals !== undefined));
+      if (!decision.allow) {
+        const reason = decision.reason ?? "denied";
+        throw new BridgeCallError("approval_required", approvalMessage(tool.qualifiedName, reason), reason);
+      }
     }
 
     // Validate before spending budget so an argument mistake does not cost a retry.
@@ -299,12 +303,11 @@ function withError(result: ExecuteResult, error: NonNullable<ExecuteResult["erro
   return { ...rest, status: "error", error };
 }
 
-/** One message per way a call can fail approval, so a script can tell them apart. The code is always `approval_required`. */
-function approvalMessage(tool: string, reason: ApprovalDecision["reason"], hasHandler: boolean): string {
+/** One message per `approval_required` reason, for the model to read; scripts branch on `reason` itself. */
+function approvalMessage(tool: string, reason: BridgeErrorReason<"approval_required">): string {
   if (reason === "expired") return `Call to ${tool} requires approval and the request expired before anyone decided`;
-  if (reason === "denied") return `Call to ${tool} requires approval and was denied`;
-  if (!hasHandler) return `Call to ${tool} requires approval and no approver is configured`;
-  return `Call to ${tool} requires approval and was not approved`;
+  if (reason === "no_approver") return `Call to ${tool} requires approval and no approver is configured`;
+  return `Call to ${tool} requires approval and was denied`;
 }
 
 function iso(ms: number = Date.now()): string {
